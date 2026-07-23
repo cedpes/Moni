@@ -6,7 +6,7 @@ import { fmt, barColorHex } from '@/lib/utils'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import MonthPicker from '@/components/ui/MonthPicker'
-import { Settings, Plus, Loader2, X } from 'lucide-react'
+import { Settings, Plus, Loader2, X, Home } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Props {
@@ -130,6 +130,10 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
             <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f] leading-tight">Budget</h1>
           </div>
           <div className="flex items-center gap-2 mt-2">
+            <a href="https://hacpe.duckdns.org/local/domotique.html"
+              className="w-8 h-8 rounded-full bg-white border border-[#d1d1d6] flex items-center justify-center text-[#86868b] active:scale-95 transition-transform">
+              <Home size={15} />
+            </a>
             <MonthPicker />
             <button onClick={() => router.push('/settings')}
               className="w-8 h-8 rounded-full bg-white border border-[#d1d1d6] flex items-center justify-center text-[#86868b] active:scale-95 transition-transform">
