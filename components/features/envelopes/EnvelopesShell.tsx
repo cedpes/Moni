@@ -5,14 +5,17 @@ import { useMonthData } from '@/hooks/useMonthData'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, barColorHex } from '@/lib/utils'
+import { fmt } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
-import { Plus, X, Check, Pencil, Loader2, ChevronRight } from 'lucide-react'
+import { Plus, X, Loader2, Pencil, CalendarDays, ChevronRight } from 'lucide-react'
 
 const ICONS = ['🏠','✨','💰','🛒','🎉','🍽️','⛽','🎵','📺','💊','🚗','👕','🎮','✈️','🏋️','📦']
 const COLORS = ['#fff3e0','#f3f0ff','#e8faf0','#e8f4ff','#fef0f5','#fff8e6','#f0f7ff','#f5f5f7']
 const ENV_COLORS: Record<string, string> = {
   charges:'#fff3e0', plaisir:'#f3f0ff', epargne:'#e8faf0', courses:'#e8f4ff',
+}
+const ENV_BORDER: Record<string, string> = {
+  charges:'#fbbf24', plaisir:'#a78bfa', epargne:'#34d399', courses:'#60a5fa',
 }
 
 interface Props {
@@ -22,6 +25,7 @@ interface Props {
 }
 
 export default function EnvelopesShell({ workspaceId, userId, categories }: Props) {
+  const router = useRouter()
   const { monthKey, monthLabel } = useMonth()
   const { month, envelopes, transactions, loading, refetch } = useMonthData(monthKey, workspaceId)
   const [showAdd, setShowAdd] = useState(false)
@@ -67,12 +71,6 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
     setSaving(false); setShowAdd(false); refetch()
   }
 
-  async function togglePaid(env: any) {
-    const pb = createClient()
-    await pb.collection('envelopes').update(env.id, { is_paid: !env.is_paid })
-    refetch()
-  }
-
   async function deleteEnvelope(id: string) {
     const pb = createClient()
     await pb.collection('envelopes').delete(id)
@@ -81,18 +79,20 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
 
   const income = month?.income ?? 0
   const totalSpent = transactions.reduce((s: number, t: any) => s + t.amount, 0)
-  const reste = income - totalSpent
+  const totalBudget = envelopes.reduce((s: number, e: any) => s + e.budget, 0)
+  const reste = totalBudget - totalSpent
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] pb-24">
-      <header className="sticky top-0 z-10 bg-[#f5f5f7]/90 backdrop-blur-xl border-b border-black/[0.06] px-5 pt-14 pb-3">
+    <div className="min-h-screen bg-black pb-24">
+      <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-xl border-b border-white/10 px-5 pt-14 pb-3">
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f] leading-tight">Enveloppes</h1>
-          </div>
+          <h1 className="text-[28px] font-bold tracking-tight text-white leading-tight">Dépenses variables</h1>
           <div className="flex items-center gap-2 mt-1">
+            <button onClick={() => router.push('/calendar')} className="w-8 h-8 rounded-full bg-[#1c1c1e] border border-white/10 flex items-center justify-center">
+              <CalendarDays size={15} color="#8e8e93" />
+            </button>
             <MonthPicker />
-            <button onClick={openAdd} className="w-8 h-8 rounded-full bg-[#1d1d1f] flex items-center justify-center active:scale-95 transition-transform">
+            <button onClick={openAdd} className="w-8 h-8 rounded-full bg-[#3b82f6] flex items-center justify-center active:scale-95 transition-transform">
               <Plus size={16} color="white" />
             </button>
           </div>
@@ -100,144 +100,155 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#86868b]" /></div>
+        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
       ) : (
-        <div className="px-4 pt-5 space-y-3">
-          {/* Résumé */}
-          <div className="bg-white rounded-[20px] p-5">
-            <div className="grid grid-cols-3 divide-x divide-[#f2f2f7]">
-              {[
-                { label: 'Revenus', value: fmt(income) },
-                { label: 'Budgeté', value: fmt(envelopes.reduce((s: number, e: any) => s + e.budget, 0)) },
-                { label: 'Dépensé', value: fmt(totalSpent), sub: reste >= 0 ? `${fmt(reste)} restant` : `${fmt(-reste)} dépassé` },
-              ].map(({ label, value, sub }) => (
-                <div key={label} className="text-center px-2">
-                  <p className="text-[11px] text-[#86868b] mb-1">{label}</p>
-                  <p className="text-[16px] font-bold text-[#1d1d1f] tracking-tight">{value}</p>
-                  {sub && <p className="text-[11px] text-[#86868b] mt-0.5">{sub}</p>}
-                </div>
-              ))}
+        <div className="px-4 pt-5 space-y-4">
+          {/* Reste dans les enveloppes */}
+          <div className="bg-[#1c1c1e] rounded-[20px] p-6 flex flex-col items-center">
+            <p className="text-[13px] text-[#8e8e93] mb-4">Reste dans les enveloppes</p>
+            <div className="relative w-[140px] h-[140px]">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <circle cx="70" cy="70" r="60" fill="none" stroke="#2c2c2e" strokeWidth="10" />
+                <circle cx="70" cy="70" r="60" fill="none" stroke="#a78bfa" strokeWidth="10"
+                  strokeDasharray={(2 * Math.PI * 60).toFixed(1)}
+                  strokeDashoffset={(totalBudget > 0 ? (2 * Math.PI * 60) * (1 - Math.max(0, Math.min(1, reste / totalBudget))) : 2 * Math.PI * 60).toFixed(1)}
+                  strokeLinecap="round" transform="rotate(-90 70 70)" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[22px] font-bold tracking-tight text-white">{fmt(reste)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Revenu */}
-          {month && <RevenueCard month={month} onSaved={refetch} />}
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'Revenus', value: fmt(income) },
+              { label: 'Budgeté', value: fmt(totalBudget) },
+              { label: 'Dépensé', value: fmt(totalSpent) },
+            ].map(({ label, value }) => (
+              <div key={label} className="bg-[#1c1c1e] rounded-[14px] py-3 text-center">
+                <p className="text-[11px] text-[#8e8e93] mb-1">{label}</p>
+                <p className="text-[14px] font-bold text-white tracking-tight">{value}</p>
+              </div>
+            ))}
+          </div>
 
-          <p className="text-[12px] font-semibold tracking-widest uppercase text-[#86868b] px-1 pt-1">
-            {envelopes.length} enveloppe{envelopes.length > 1 ? 's' : ''}
-          </p>
+          <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93] px-1 pt-1">Les enveloppes</p>
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {envelopes.map((env: any) => {
               const spent = spentFor(env.slug)
-              const remain = env.budget - spent
               const isPlaisir = env.slug === 'plaisir'
               const isCharges = env.slug === 'charges'
+              const isCourses = env.slug === 'courses'
 
-              // Plaisir = Revenus − Charges − Épargne − Courses (auto)
               const epargne = envelopes.find((e: any) => e.slug === 'epargne')?.budget ?? 0
               const courses = envelopes.find((e: any) => e.slug === 'courses')?.budget ?? 0
               const charges = envelopes.find((e: any) => e.slug === 'charges')?.budget ?? 0
               const plaisirAuto = income - charges - epargne - courses
               const displayBudget = isPlaisir ? Math.max(0, plaisirAuto) : env.budget
+              const remain = displayBudget - spent
+              const borderColor = ENV_BORDER[env.slug] ?? '#3a3a3c'
 
               return (
-                <div key={env.id} className="bg-white rounded-[16px] overflow-hidden">
-                  <div className="flex items-center px-4 py-3.5 gap-3">
-                    <div className="w-10 h-10 rounded-[11px] flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: env.color ?? ENV_COLORS[env.slug] ?? '#f5f5f7' }}>{env.icon}</div>
+                <button key={env.id} onClick={() => isCourses && router.push('/courses')}
+                  className="w-full text-left bg-[#1c1c1e] rounded-[16px] p-4 border"
+                  style={{ borderColor }}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+                      style={{ background: env.color ?? ENV_COLORS[env.slug] ?? '#2c2c2e' }}>{env.icon}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[15px] font-semibold text-[#1d1d1f]">{env.name}</p>
-                        {isCharges && <span className="text-[10px] font-medium bg-[#f2f2f7] text-[#86868b] px-1.5 py-0.5 rounded-full">Auto</span>}
-                        {isPlaisir && <span className="text-[10px] font-medium bg-[#f3f0ff] text-[#7c3aed] px-1.5 py-0.5 rounded-full">Auto</span>}
+                        <p className="text-[15px] font-semibold text-white">{env.name}</p>
+                        {(isCharges || isPlaisir) && <span className="text-[10px] font-medium bg-[#2c2c2e] text-[#8e8e93] px-1.5 py-0.5 rounded-full">Auto</span>}
                       </div>
-                      <p className="text-[12px] text-[#86868b] mt-0.5">
-                        {fmt(spent)} dépensé · {(displayBudget - spent) >= 0 ? `${fmt(displayBudget - spent)} restant` : `${fmt(spent - displayBudget)} dépassé`}
-                      </p>
+                      <p className="text-[13px] text-[#60a5fa] mt-1">• Montant : {fmt(displayBudget)}</p>
+                      <p className={`text-[13px] mt-0.5 ${remain < 0 ? 'text-[#f87171]' : 'text-[#f87171]'}`}>• Restant: {fmt(remain)}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      <p className="text-[15px] font-bold text-[#1d1d1f]">{fmt(displayBudget)}</p>
-                      <div className="flex gap-1.5">
-                        {!isPlaisir && !isCharges && (
-                          <button onClick={() => openEdit(env)} className="w-6 h-6 rounded-full bg-[#f2f2f7] flex items-center justify-center">
-                            <Pencil size={11} color="#86868b" />
-                          </button>
-                        )}
-                        {!env.is_system && (
-                          <button onClick={() => deleteEnvelope(env.id)} className="w-6 h-6 rounded-full bg-[#f2f2f7] flex items-center justify-center">
-                            <X size={11} color="#86868b" />
-                          </button>
-                        )}
-                      </div>
+                      {isCourses && <ChevronRight size={16} color="#8e8e93" />}
+                      {!isPlaisir && !isCharges && !isCourses && (
+                        <div className="flex gap-1.5">
+                          <span onClick={(e) => { e.stopPropagation(); openEdit(env) }}
+                            className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center">
+                            <Pencil size={11} color="#8e8e93" />
+                          </span>
+                          {!env.is_system && (
+                            <span onClick={(e) => { e.stopPropagation(); deleteEnvelope(env.id) }}
+                              className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center">
+                              <X size={11} color="#8e8e93" />
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                </button>
               )
             })}
           </div>
 
           {envelopes.length === 0 && (
-            <div className="bg-white rounded-[20px] px-4 py-10 text-center">
+            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-10 text-center">
               <p className="text-[32px] mb-3">📦</p>
-              <p className="text-[15px] font-medium text-[#1d1d1f]">Aucune enveloppe</p>
-              <p className="text-[13px] text-[#86868b] mt-1">Appuie sur + pour en créer une</p>
+              <p className="text-[15px] font-medium text-white">Aucune enveloppe</p>
+              <p className="text-[13px] text-[#8e8e93] mt-1">Appuie sur + pour en créer une</p>
             </div>
           )}
         </div>
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowAdd(false) }}>
-          <div className="bg-white rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#d1d1d6] rounded-full mx-auto mb-5" />
+          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-[#1d1d1f]">{editingId ? 'Modifier' : 'Nouvelle enveloppe'}</h2>
-              <button onClick={() => setShowAdd(false)} className="w-7 h-7 rounded-full bg-[#f2f2f7] flex items-center justify-center"><X size={14} /></button>
+              <h2 className="text-[18px] font-bold text-white">{editingId ? 'Modifier' : 'Nouvelle enveloppe'}</h2>
+              <button onClick={() => setShowAdd(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center"><X size={14} color="#8e8e93" /></button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[13px] text-[#86868b] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[15px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
+                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="Loyer, Netflix…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
-                  <label className="text-[13px] text-[#86868b] block mb-1.5">Budget (€)</label>
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[15px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="text-[13px] text-[#86868b] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
                 <input type="number" min="1" max="31"
-                  className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[15px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : 5 pour le 5 du mois" value={fDueDay} onChange={e => setFDueDay(e.target.value)} />
               </div>
               <div>
-                <label className="text-[13px] text-[#86868b] block mb-1.5">Icône</label>
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
                 <div className="flex flex-wrap gap-2">
                   {ICONS.map(icon => (
                     <button key={icon} onClick={() => setFIcon(icon)}
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#007aff]' : ''}`}
+                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#3b82f6]' : ''}`}
                       style={{ background: fColor }}>{icon}</button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-[13px] text-[#86868b] block mb-1.5">Couleur</label>
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Couleur</label>
                 <div className="flex gap-2">
                   {COLORS.map(color => (
                     <button key={color} onClick={() => setFColor(color)}
-                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-1 ring-[#007aff]' : ''}`}
-                      style={{ background: color, border: '1px solid #d1d1d6' }} />
+                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[#1c1c1e] ring-[#3b82f6]' : ''}`}
+                      style={{ background: color }} />
                   ))}
                 </div>
               </div>
               <button onClick={saveEnvelope} disabled={saving || !fName || !fBudget}
-                className="w-full h-12 bg-[#1d1d1f] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editingId ? 'Enregistrer' : 'Créer'}
               </button>
@@ -245,44 +256,6 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function RevenueCard({ month, onSaved }: { month: any, onSaved: () => void }) {
-  const [editing, setEditing] = useState(false)
-  const [value, setValue] = useState(String(month.income ?? 0))
-  const [saving, setSaving] = useState(false)
-
-  async function save() {
-    setSaving(true)
-    const pb = createClient()
-    await pb.collection('months').update(month.id, { income: parseFloat(value) || 0 })
-    setSaving(false); setEditing(false); onSaved()
-  }
-
-  return (
-    <div className="bg-white rounded-[16px] overflow-hidden">
-      <div className="flex items-center px-4 py-3.5 gap-3">
-        <div className="w-10 h-10 rounded-[11px] bg-[#e8faf0] flex items-center justify-center text-xl flex-shrink-0">💵</div>
-        <div className="flex-1">
-          <p className="text-[15px] font-semibold text-[#1d1d1f]">Revenu mensuel</p>
-          <p className="text-[12px] text-[#86868b]">Base de calcul du budget</p>
-        </div>
-        {editing ? (
-          <div className="flex items-center gap-2">
-            <input type="number" value={value} onChange={e => setValue(e.target.value)}
-              className="w-24 h-9 border border-[#007aff] rounded-[10px] px-2.5 text-[14px] font-semibold text-right bg-white outline-none" autoFocus />
-            <button onClick={save} disabled={saving} className="w-9 h-9 bg-[#1d1d1f] rounded-[10px] flex items-center justify-center">
-              {saving ? <Loader2 size={14} color="white" className="animate-spin" /> : <Check size={14} color="white" />}
-            </button>
-          </div>
-        ) : (
-          <button onClick={() => setEditing(true)} className="flex items-center gap-1 text-[15px] font-bold text-[#1d1d1f]">
-            {fmt(month.income ?? 0)}<ChevronRight size={14} color="#86868b" />
-          </button>
-        )}
-      </div>
     </div>
   )
 }
