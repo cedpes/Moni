@@ -75,7 +75,7 @@ export default function RegisterPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/budget')
     router.refresh()
   }
 
@@ -97,7 +97,7 @@ export default function RegisterPage() {
               value={name}
               onChange={e => setName(e.target.value)}
               autoComplete="given-name"
-              className="w-full px-4 h-12 text-[15px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]"
+              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]"
               required
             />
             <input
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
-              className="w-full px-4 h-12 text-[15px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]"
+              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]"
               required
             />
             <input
@@ -115,7 +115,7 @@ export default function RegisterPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete="new-password"
-              className="w-full px-4 h-12 text-[15px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none"
+              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none"
               required
             />
           </div>

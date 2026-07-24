@@ -211,26 +211,26 @@ function CouranteTab({ workspaceId, userId, month, transactions, categories, loa
             <div className="space-y-3">
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : Boulangerie, essence…" value={fLabel} onChange={e => setFLabel(e.target.value)} autoFocus />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="0.00" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Date</label>
                   <input type="date"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     value={fDate} onChange={e => setFDate(e.target.value)} />
                 </div>
               </div>
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Catégorie</label>
-                <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none appearance-none"
+                <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none appearance-none"
                   value={fCatId} onChange={e => setFCatId(e.target.value)}>
                   <option value="">Sans catégorie</option>
                   {categories.map((c: any) => <option key={c.id} value={c.id}>{c.icon ?? CAT_ICONS[c.name] ?? '📦'} {c.name}</option>)}
@@ -411,20 +411,20 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="Loyer, Netflix…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de prélèvement</label>
                 <input type="number" min="1" max="31"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : 5" value={fDay} onChange={e => setFDay(e.target.value)} />
               </div>
               <div>
@@ -637,19 +637,19 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
             <div className="space-y-3">
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : Cinéma, essence…" value={fLabel} onChange={e => setFLabel(e.target.value)} autoFocus />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Catégorie</label>
-                  <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none appearance-none"
+                  <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none appearance-none"
                     value={fCatId} onChange={e => setFCatId(e.target.value)}>
                     <option value="">Sans catégorie</option>
                     {categories.map((c: any) => <option key={c.id} value={c.id}>{c.icon ?? ''} {c.name}</option>)}

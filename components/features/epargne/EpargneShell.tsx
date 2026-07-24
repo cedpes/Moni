@@ -202,13 +202,13 @@ export default function EpargneShell({ workspaceId }: Props) {
             <div className="space-y-3">
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="Vacances, Fonds d'urgence…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
               </div>
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Objectif (€)</label>
                 <input type="number" step="0.01" min="0"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="0" value={fTarget} onChange={e => setFTarget(e.target.value)} />
               </div>
               <div>
@@ -256,7 +256,7 @@ export default function EpargneShell({ workspaceId }: Props) {
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
                 <input type="number" step="0.01" min="0"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="0" value={contribAmount} onChange={e => setContribAmount(e.target.value)} autoFocus />
               </div>
               <button onClick={addContribution} disabled={saving || !contribAmount}

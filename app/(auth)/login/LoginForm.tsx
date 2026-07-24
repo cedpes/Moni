@@ -10,7 +10,7 @@ import { Loader2 } from 'lucide-react'
 export default function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard'
+  const redirectTo = searchParams.get('redirectTo') || '/budget'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -46,10 +46,10 @@ export default function LoginForm() {
           <div className="bg-white rounded-2xl overflow-hidden">
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)}
               autoComplete="email" required
-              className="w-full px-4 h-12 text-[15px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]" />
+              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]" />
             <input type="password" placeholder="Mot de passe" value={password} onChange={e => setPassword(e.target.value)}
               autoComplete="current-password" required
-              className="w-full px-4 h-12 text-[15px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none" />
+              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none" />
           </div>
           {error && <p className="text-[#ff3b30] text-sm text-center">{error}</p>}
           <button type="submit" disabled={loading}

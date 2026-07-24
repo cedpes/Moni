@@ -172,7 +172,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
             <div className="space-y-3">
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Magasin</label>
-                <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none appearance-none"
+                <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none appearance-none"
                   value={fLabel} onChange={e => setFLabel(e.target.value)}>
                   <option value="">Choisir…</option>
                   {STORES.map(s => <option key={s} value={s}>{STORE_ICONS[s]} {s}</option>)}
@@ -182,13 +182,13 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="0.00" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Date</label>
                   <input type="date"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     value={fDate} onChange={e => setFDate(e.target.value)} />
                 </div>
               </div>
@@ -214,7 +214,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget mensuel (€)</label>
                 <input type="number" min="0"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   value={tmpMonthly} onChange={e => setTmpMonthly(e.target.value)} />
               </div>
               <button onClick={saveSettings} className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] active:scale-[0.98] transition-all">

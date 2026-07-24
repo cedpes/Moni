@@ -400,14 +400,14 @@ export default function CalendarShell({ workspaceId }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder={fType === 'charge' ? 'Netflix, Loyer…' : 'Salaire, Freelance…'}
                     value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
                   <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
@@ -426,13 +426,13 @@ export default function CalendarShell({ workspaceId }: Props) {
                 </div>
                 {fDayMode === 'fixed' ? (
                   <input type="number" min="1" max="31"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                     placeholder="Ex : 1 pour le 1er du mois" value={fDay} onChange={e => setFDay(e.target.value)} />
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] text-[#8e8e93]">Fin du mois −</span>
                     <input type="number" min="0" max="15"
-                      className="w-20 h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                      className="w-20 h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                       placeholder="2" value={fDay} onChange={e => setFDay(e.target.value)} />
                     <span className="text-[14px] text-[#8e8e93]">jours</span>
                   </div>

@@ -333,19 +333,19 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
             <div className="px-5 pb-4 space-y-3">
               <div>
                 <label className="text-[13px] text-[#86868b] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[15px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                <input className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[16px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
                   placeholder="Ex : Netflix, restaurant…" value={txLabel} onChange={e => setTxLabel(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[#86868b] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[15px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                    className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[16px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
                     placeholder="0.00" value={txAmount} onChange={e => setTxAmount(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[13px] text-[#86868b] block mb-1.5">Enveloppe</label>
-                  <select className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[15px] bg-[#f9f9fa] outline-none appearance-none"
+                  <select className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[16px] bg-[#f9f9fa] outline-none appearance-none"
                     value={txEnv} onChange={e => setTxEnv(e.target.value)}>
                     <option value="plaisir">✨ Plaisir</option>
                     <option value="courses">🛒 Courses</option>
