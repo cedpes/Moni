@@ -52,19 +52,13 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const variablePct = income > 0 ? (variable / income) * 100 : 0
     const epargnePct = income > 0 ? (epargne / income) * 100 : 0
 
-    const budgetReparti = envelopes.reduce((s: number, e: any) => s + e.budget, 0)
-    const budgetConsomme = txInMonth.reduce((s: number, t: any) => s + t.amount, 0)
-
     return {
       income, totalCharges, variable, epargne, restant, daysLeft, perDay,
-      fixePct, variablePct, epargnePct, budgetReparti, budgetConsomme,
+      fixePct, variablePct, epargnePct,
     }
   }, [month, envelopes, transactions, fixedItems, monthKey, tab])
 
-  const { income, totalCharges, variable, epargne, restant, daysLeft, perDay, fixePct, variablePct, epargnePct, budgetReparti, budgetConsomme } = metrics
-
-  const envDonut: Record<string, number> = {}
-  envelopes.forEach((e: any) => { if (e.budget > 0) envDonut[e.name] = e.budget })
+  const { income, totalCharges, variable, epargne, restant, daysLeft, perDay, fixePct, variablePct, epargnePct } = metrics
 
   return (
     <div className="min-h-screen bg-black pb-24">
@@ -152,23 +146,6 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
               total={100}
               centerLabel="Total"
             />
-          </div>
-
-          {/* Détails des enveloppes */}
-          <div className="bg-[#1c1c1e] rounded-[20px] p-4">
-            <p className="text-[15px] font-semibold text-white mb-3">Détails des enveloppes</p>
-            <div className="flex justify-between mb-1">
-              <div>
-                <p className="text-[12px] text-[#8e8e93]">Budget réparti</p>
-                <p className="text-[16px] font-bold text-[#60a5fa]">{fmt(budgetReparti)}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[12px] text-[#8e8e93]">Budget consommé</p>
-                <p className="text-[16px] font-bold text-[#34d399]">{fmt(budgetConsomme)}</p>
-              </div>
-            </div>
-            <p className="text-[12px] text-[#8e8e93] mb-3">Il reste {fmt(budgetReparti - budgetConsomme)} à dépenser</p>
-            <DonutChart data={envDonut} total={budgetReparti} centerLabel="Total" />
           </div>
         </div>
       )}
