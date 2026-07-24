@@ -161,7 +161,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
@@ -202,7 +202,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
       )}
 
       {showSettings && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/30 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowSettings(false) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />

@@ -189,7 +189,7 @@ export default function EpargneShell({ workspaceId }: Props) {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
@@ -242,7 +242,7 @@ export default function EpargneShell({ workspaceId }: Props) {
       )}
 
       {contribFor && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setContribFor(null) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />

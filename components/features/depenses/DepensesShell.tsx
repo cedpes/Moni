@@ -79,7 +79,7 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 
       {tab === 'courante' && (
         <CouranteTab workspaceId={workspaceId} userId={userId} monthKey={monthKey}
-          month={month} envelopes={envelopes} transactions={transactions}
+          month={month} envelopes={envelopes} transactions={transactions} categories={categories}
           loading={monthLoading} refetch={refetch} />
       )}
       {tab === 'fixe' && (
@@ -97,9 +97,9 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 // ─────────────────────────────────────────────────────────
 // Onglet Courante : dépenses du quotidien (pas sur le calendrier)
 // ─────────────────────────────────────────────────────────
-function CouranteTab({ workspaceId, userId, month, envelopes, transactions, loading, refetch }: {
+function CouranteTab({ workspaceId, userId, month, transactions, categories, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
-  month: any; envelopes: any[]; transactions: any[]; loading: boolean; refetch: () => void
+  month: any; envelopes: any[]; transactions: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -107,7 +107,7 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
   const [fLabel, setFLabel] = useState('')
   const [fAmount, setFAmount] = useState('')
   const [fDate, setFDate] = useState(new Date().toISOString().slice(0, 10))
-  const [fEnv, setFEnv] = useState('plaisir')
+  const [fCatId, setFCatId] = useState('')
 
   // Toutes les dépenses courantes = transactions hors charges fixes
   const courantes = useMemo(() => transactions
@@ -117,7 +117,7 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
   const total = courantes.reduce((s: number, t: any) => s + t.amount, 0)
 
   function openAdd() {
-    setFLabel(''); setFAmount(''); setFDate(new Date().toISOString().slice(0, 10)); setFEnv('plaisir')
+    setFLabel(''); setFAmount(''); setFDate(new Date().toISOString().slice(0, 10)); setFCatId('')
     setShowModal(true)
   }
 
@@ -126,9 +126,12 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
     if (!fLabel.trim() || !amount || !month) return
     setSaving(true)
     const pb = createClient()
+    const cat = categories.find((c: any) => c.id === fCatId)
+    const envelopeSlug = cat?.name === 'Courses' ? 'courses' : 'plaisir'
     await pb.collection('transactions').create({
       month_id: month.id, workspace_id: workspaceId,
-      envelope_slug: fEnv, label: fLabel.trim(), amount,
+      envelope_slug: envelopeSlug, category_id: fCatId || null,
+      label: fLabel.trim(), amount,
       date: fDate || new Date().toISOString().slice(0, 10), created_by: userId,
     })
     setSaving(false); setShowModal(false); refetch()
@@ -140,8 +143,6 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
     await pb.collection('transactions').delete(id)
     setDeleting(null); refetch()
   }
-
-  const envOptions = envelopes.filter((e: any) => e.slug !== 'charges')
 
   return (
     <>
@@ -175,7 +176,7 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
                     <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: bg }}>{icon}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[15px] font-medium text-white truncate">{t.label}</p>
-                      <p className="text-[12px] text-[#8e8e93]">{t.envelope_slug} · {t.date}</p>
+                      <p className="text-[12px] text-[#8e8e93]">{catName} · {t.date}</p>
                     </div>
                     <p className="text-[15px] font-semibold text-[#f87171] flex-shrink-0">−{fmt(t.amount)}</p>
                     <button onClick={() => deleteTransaction(t.id)} disabled={deleting === t.id}
@@ -197,7 +198,7 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
@@ -228,10 +229,11 @@ function CouranteTab({ workspaceId, userId, month, envelopes, transactions, load
                 </div>
               </div>
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Enveloppe</label>
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Catégorie</label>
                 <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[15px] bg-[#2c2c2e] text-white outline-none appearance-none"
-                  value={fEnv} onChange={e => setFEnv(e.target.value)}>
-                  {envOptions.map((e: any) => <option key={e.slug} value={e.slug}>{e.icon} {e.name}</option>)}
+                  value={fCatId} onChange={e => setFCatId(e.target.value)}>
+                  <option value="">Sans catégorie</option>
+                  {categories.map((c: any) => <option key={c.id} value={c.id}>{c.icon ?? CAT_ICONS[c.name] ?? '📦'} {c.name}</option>)}
                 </select>
               </div>
               <button onClick={addTransaction} disabled={saving || !fLabel || !fAmount}
@@ -395,7 +397,7 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
@@ -622,7 +624,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-end justify-center"
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
