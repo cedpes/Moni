@@ -13,5 +13,10 @@ export default async function DepensesPage() {
   const workspaceId: string | null = memberships[0]?.workspace_id ?? null
   if (!workspaceId) redirect('/login')
 
-  return <DepensesShell workspaceId={workspaceId} />
+  const categories = await pb.collection('categories').getFullList({
+    filter: `workspace_id="${workspaceId}"`,
+    sort: 'name',
+  })
+
+  return <DepensesShell workspaceId={workspaceId} userId={user.id} categories={categories ?? []} />
 }
