@@ -52,11 +52,20 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
     setEditingId(env.id); setShowAdd(true)
   }
 
+  const editingEnv = editingId ? envelopes.find((e: any) => e.id === editingId) : null
+  const isEditingCourses = editingEnv?.slug === 'courses'
+
   async function saveEnvelope() {
-    if (!fName.trim() || !fBudget || !month) return
+    if (!fBudget || !month) return
+    if (!isEditingCourses && !fName.trim()) return
     setSaving(true)
     const pb = createClient()
-    if (editingId) {
+    if (isEditingCourses) {
+      // Le budget de l'enveloppe "Courses" est piloté par le budget mensuel prévisionnel
+      // (réglage disponible aussi sur la page Courses) : on met à jour cette valeur,
+      // l'enveloppe se resynchronise automatiquement au prochain chargement.
+      await pb.collection('months').update(month.id, { courses_budget: parseFloat(fBudget) })
+    } else if (editingId) {
       await pb.collection('envelopes').update(editingId, {
         name: fName.trim(), budget: parseFloat(fBudget),
         icon: fIcon, color: fColor, due_day: fDueDay ? parseInt(fDueDay) : null,
@@ -160,14 +169,14 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-[15px] font-semibold text-white">{env.name}</p>
-                        {(isCharges || isPlaisir || isCourses) && <span className="text-[10px] font-medium bg-[#2c2c2e] text-[#8e8e93] px-1.5 py-0.5 rounded-full">Auto</span>}
+                        {(isCharges || isPlaisir) && <span className="text-[10px] font-medium bg-[#2c2c2e] text-[#8e8e93] px-1.5 py-0.5 rounded-full">Auto</span>}
                       </div>
                       <p className="text-[13px] text-[#60a5fa] mt-1">• Montant : {fmt(displayBudget)}</p>
                       <p className={`text-[13px] mt-0.5 ${remain < 0 ? 'text-[#f87171]' : 'text-[#f87171]'}`}>• Restant: {fmt(remain)}</p>
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
                       {isCourses && <ChevronRight size={16} color="#8e8e93" />}
-                      {!isPlaisir && !isCharges && !isCourses && (
+                      {!isPlaisir && !isCharges && (
                         <div className="flex gap-1.5">
                           <span onClick={(e) => { e.stopPropagation(); openEdit(env) }}
                             className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center">
@@ -204,53 +213,65 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">{editingId ? 'Modifier' : 'Nouvelle enveloppe'}</h2>
+              <h2 className="text-[18px] font-bold text-white">{isEditingCourses ? 'Budget Courses' : editingId ? 'Modifier' : 'Nouvelle enveloppe'}</h2>
               <button onClick={() => setShowAdd(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center"><X size={14} color="#8e8e93" /></button>
             </div>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              {isEditingCourses ? (
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                    placeholder="Loyer, Netflix…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
-                </div>
-                <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget (€)</label>
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget prévisionnel du mois (€)</label>
                   <input type="number" step="0.01" min="0"
                     className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                    placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} />
+                    placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} autoFocus />
+                  <p className="text-[12px] text-[#8e8e93] mt-2">Ce montant est le même que celui réglable depuis la page Courses (⚙). Le restant continue de baisser avec les passages ajoutés.</p>
                 </div>
-              </div>
-              <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
-                <input type="number" min="1" max="31"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                  placeholder="Ex : 5 pour le 5 du mois" value={fDueDay} onChange={e => setFDueDay(e.target.value)} />
-              </div>
-              <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
-                <div className="flex flex-wrap gap-2">
-                  {ICONS.map(icon => (
-                    <button key={icon} onClick={() => setFIcon(icon)}
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#3b82f6]' : ''}`}
-                      style={{ background: fColor }}>{icon}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Couleur</label>
-                <div className="flex gap-2">
-                  {COLORS.map(color => (
-                    <button key={color} onClick={() => setFColor(color)}
-                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[#1c1c1e] ring-[#3b82f6]' : ''}`}
-                      style={{ background: color }} />
-                  ))}
-                </div>
-              </div>
-              <button onClick={saveEnvelope} disabled={saving || !fName || !fBudget}
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
+                      <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                        placeholder="Loyer, Netflix…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
+                    </div>
+                    <div>
+                      <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget (€)</label>
+                      <input type="number" step="0.01" min="0"
+                        className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                        placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
+                    <input type="number" min="1" max="31"
+                      className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                      placeholder="Ex : 5 pour le 5 du mois" value={fDueDay} onChange={e => setFDueDay(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
+                    <div className="flex flex-wrap gap-2">
+                      {ICONS.map(icon => (
+                        <button key={icon} onClick={() => setFIcon(icon)}
+                          className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#3b82f6]' : ''}`}
+                          style={{ background: fColor }}>{icon}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[13px] text-[#8e8e93] block mb-1.5">Couleur</label>
+                    <div className="flex gap-2">
+                      {COLORS.map(color => (
+                        <button key={color} onClick={() => setFColor(color)}
+                          className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[#1c1c1e] ring-[#3b82f6]' : ''}`}
+                          style={{ background: color }} />
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+              <button onClick={saveEnvelope} disabled={saving || !fBudget || (!isEditingCourses && !fName)}
                 className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
-                {editingId ? 'Enregistrer' : 'Créer'}
+                {isEditingCourses ? 'Enregistrer' : editingId ? 'Enregistrer' : 'Créer'}
               </button>
             </div>
           </div>
