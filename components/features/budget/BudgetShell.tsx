@@ -4,10 +4,10 @@ import { useMemo, useState } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import { useRouter } from 'next/navigation'
-import { fmt } from '@/lib/utils'
+import { fmt, getWeeksOfMonth, fixedItemAmountForWeek } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
-import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Settings, Home, Info, ShoppingCart } from 'lucide-react'
+import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Settings, Home, Info, ShoppingCart, CalendarRange } from 'lucide-react'
 
 interface Props { workspaceId: string; userId: string; displayName: string | null }
 
@@ -16,6 +16,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
   const { monthKey, monthLabel } = useMonth()
   const { month, envelopes, transactions, planned, fixedItems, loading } = useMonthData(monthKey, workspaceId)
   const [tab, setTab] = useState<'reel' | 'previsionnel'>('reel')
+  const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
 
   const metrics = useMemo(() => {
     const income = month?.income ?? 0
@@ -79,6 +80,27 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
 
   const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay, categoryData, categoryTotal } = metrics
 
+  // Vue hebdomadaire : découpe le mois en semaines et affecte à chacune les revenus/charges
+  // fixes qui tombent dedans (grâce au jour de prélèvement / jour de semaine des fixed_items).
+  // Le prévisionnel variable n'a pas de date précise -> il est réparti à parts égales entre les semaines.
+  const weekly = useMemo(() => {
+    const weeks = getWeeksOfMonth(monthKey)
+    const incomeItems = (fixedItems ?? []).filter((f: any) => f.type === 'income')
+    const chargeItems = (fixedItems ?? []).filter((f: any) => f.type === 'charge')
+    const variablePrevuTotal = (planned ?? []).filter((p: any) => !p.is_validated).reduce((s: number, p: any) => s + p.amount, 0)
+    const variablePerWeek = weeks.length > 0 ? variablePrevuTotal / weeks.length : 0
+
+    let cumulative = 0
+    const rows = weeks.map(w => {
+      const weekIncome = incomeItems.reduce((s: number, f: any) => s + fixedItemAmountForWeek(f, monthKey, w), 0)
+      const weekCharges = chargeItems.reduce((s: number, f: any) => s + fixedItemAmountForWeek(f, monthKey, w), 0)
+      const weekRestant = weekIncome - weekCharges - variablePerWeek
+      cumulative += weekRestant
+      return { ...w, income: weekIncome, charges: weekCharges, variable: variablePerWeek, restant: weekRestant, cumulative }
+    })
+    return { rows, variablePrevuTotal }
+  }, [fixedItems, planned, monthKey])
+
   return (
     <div className="min-h-screen bg-black pb-24">
       <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-xl border-b border-white/10 px-5 pt-14 pb-3">
@@ -105,6 +127,57 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
         <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
+          {/* Toggle Mensuel / Hebdomadaire */}
+          <div className="flex bg-[#1c1c1e] rounded-[16px] p-1 gap-1">
+            {(['mensuel', 'hebdomadaire'] as const).map(v => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={`flex-1 h-9 rounded-[12px] text-[14px] font-semibold transition-all flex items-center justify-center gap-1.5 ${viewMode === v ? 'bg-white text-black' : 'text-[#8e8e93]'}`}>
+                {v === 'hebdomadaire' && <CalendarRange size={14} />}
+                {v === 'mensuel' ? 'Mensuel' : 'Hebdomadaire'}
+              </button>
+            ))}
+          </div>
+
+          {viewMode === 'hebdomadaire' ? (
+            <div className="space-y-3">
+              <div className="bg-[#1c1c1e] rounded-[16px] px-4 py-3.5 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[10px] bg-[#2c2c2e] flex items-center justify-center flex-shrink-0">
+                  <Info size={15} color="#8e8e93" />
+                </div>
+                <p className="text-[13px] text-[#d1d1d6] leading-relaxed">
+                  Revenus et charges affectés à la semaine où ils tombent. Le prévisionnel variable ({fmt(weekly.variablePrevuTotal)}) est réparti à parts égales.
+                </p>
+              </div>
+              {weekly.rows.map(w => (
+                <div key={w.index} className="bg-[#1c1c1e] rounded-[20px] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[15px] font-semibold text-white">Semaine du {w.label}</p>
+                    <p className={`text-[15px] font-bold ${w.restant >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.restant)}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[#8e8e93]">Revenus</span>
+                      <span className="text-white font-medium">{fmt(w.income)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[#8e8e93]">Charges fixes</span>
+                      <span className="text-white font-medium">{fmt(w.charges)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[#8e8e93]">Variable prévu (part)</span>
+                      <span className="text-white font-medium">{fmt(w.variable)}</span>
+                    </div>
+                  </div>
+                  <div className="h-px bg-white/10 my-2.5" />
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-[#8e8e93]">Cumul depuis le début du mois</span>
+                    <span className={`font-semibold ${w.cumulative >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.cumulative)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+          <>
           {/* Tabs Réel / Prévisionnel */}
           <div className="flex bg-[#1c1c1e] rounded-[16px] p-1 gap-1">
             {(['reel', 'previsionnel'] as const).map(t => (
@@ -177,6 +250,8 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
               centerLabel="Dépensé"
             />
           </div>
+          </>
+          )}
         </div>
       )}
     </div>

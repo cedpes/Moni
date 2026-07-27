@@ -98,3 +98,60 @@ export function fixedItemMonthlyAmount(item: { amount: number; due_day: number }
   }
   return item.amount
 }
+
+// ─────────────────────────────────────────────────────────
+// Découpage d'un mois en semaines (Lundi → Dimanche, semaines de début/fin
+// de mois tronquées aux bornes du mois), pour la vue budget hebdomadaire.
+// ─────────────────────────────────────────────────────────
+const MONTH_SHORT = ['jan.', 'fév.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.']
+
+export interface MonthWeek {
+  index: number
+  startDay: number
+  endDay: number
+  label: string
+}
+
+export function getWeeksOfMonth(monthKey: string): MonthWeek[] {
+  const [year, month] = monthKey.split('-').map(Number)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const weeks: MonthWeek[] = []
+  let day = 1
+  let index = 0
+  while (day <= daysInMonth) {
+    const jsDay = new Date(year, month - 1, day).getDay() // 0=Dimanche...6=Samedi
+    const iso = jsDay === 0 ? 7 : jsDay // 1=Lundi...7=Dimanche
+    const endDay = Math.min(daysInMonth, day + (7 - iso))
+    const mLabel = MONTH_SHORT[month - 1]
+    weeks.push({
+      index,
+      startDay: day,
+      endDay,
+      label: day === endDay ? `${day} ${mLabel}` : `${day}–${endDay} ${mLabel}`,
+    })
+    day = endDay + 1
+    index++
+  }
+  return weeks
+}
+
+// Montant d'un fixed_item à affecter à une semaine donnée du mois :
+// - hebdomadaire : le montant si le jour de la semaine ciblé tombe dans cette semaine, sinon 0
+// - mensuel : le montant si le jour de prélèvement tombe dans cette semaine, sinon 0
+export function fixedItemAmountForWeek(
+  item: { amount: number; due_day: number },
+  monthKey: string,
+  week: { startDay: number; endDay: number }
+): number {
+  const [year, month] = monthKey.split('-').map(Number)
+  if (isWeeklyDueDay(item.due_day)) {
+    const targetIso = isoWeekdayFromDueDay(item.due_day)
+    for (let d = week.startDay; d <= week.endDay; d++) {
+      const jsDay = new Date(year, month - 1, d).getDay()
+      const iso = jsDay === 0 ? 7 : jsDay
+      if (iso === targetIso) return item.amount
+    }
+    return 0
+  }
+  return item.due_day >= week.startDay && item.due_day <= week.endDay ? item.amount : 0
+}
