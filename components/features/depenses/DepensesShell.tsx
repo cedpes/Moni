@@ -290,14 +290,20 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
 
   async function fetchData() {
     setLoading(true)
-    const pb = createClient()
-    const [charges, monthStatuses] = await Promise.all([
-      pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && type="charge" && is_active=true`, sort: 'due_day' }),
-      pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
-    ])
-    setItems((charges ?? []) as any)
-    setStatuses((monthStatuses ?? []) as any)
-    setLoading(false)
+    try {
+      const pb = createClient()
+      const [charges, monthStatuses] = await Promise.all([
+        pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && type="charge" && is_active=true`, sort: 'due_day' }),
+        pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
+      ])
+      setItems((charges ?? []) as any)
+      setStatuses((monthStatuses ?? []) as any)
+    } catch (err: any) {
+      if (err?.isAbort) return
+      console.error('FixeTab fetchData error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchData() }, [monthKey, workspaceId])

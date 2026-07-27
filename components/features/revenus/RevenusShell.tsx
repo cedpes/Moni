@@ -81,14 +81,22 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
 
   async function fetchData() {
     setLoading(true)
-    const pb = createClient()
-    const [incomes, monthStatuses] = await Promise.all([
-      pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && type="income" && is_active=true`, sort: 'due_day' }),
-      pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
-    ])
-    setItems((incomes ?? []) as any)
-    setStatuses((monthStatuses ?? []) as any)
-    setLoading(false)
+    try {
+      const pb = createClient()
+      const [incomes, monthStatuses] = await Promise.all([
+        pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && type="income" && is_active=true`, sort: 'due_day' }),
+        pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
+      ])
+      setItems((incomes ?? []) as any)
+      setStatuses((monthStatuses ?? []) as any)
+    } catch (err: any) {
+      // Ignore les annulations automatiques du SDK PocketBase (changement rapide de mois) ;
+      // ce ne sont pas de vraies erreurs, il ne faut juste pas rester bloqué en chargement.
+      if (err?.isAbort) return
+      console.error('RevenusShell fetchData error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchData() }, [monthKey, workspaceId])
