@@ -51,7 +51,14 @@ export default function EpargneShell({ workspaceId }: Props) {
         filter: `workspace_id="${workspaceId}" && is_active=true`,
         sort: '-created',
       })
-      setGoals((items ?? []) as any)
+      // Trie par échéance la plus proche en premier ; les objectifs sans date passent à la fin.
+      const sorted = [...(items ?? [])].sort((a: any, b: any) => {
+        if (!a.target_date && !b.target_date) return 0
+        if (!a.target_date) return 1
+        if (!b.target_date) return -1
+        return new Date(a.target_date).getTime() - new Date(b.target_date).getTime()
+      })
+      setGoals(sorted as any)
     } catch (err: any) {
       console.error('EpargneShell fetchData error:', err)
       setError('La collection "savings_goals" n\'existe pas encore dans PocketBase.')
