@@ -55,12 +55,25 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const daysLeft = isCurrentMonth ? Math.max(1, daysInMonth - today.getDate() + 1) : daysInMonth
     const perDay = restant > 0 ? restant / daysLeft : 0
 
+    // Répartition par catégorie (hors charges fixes et épargne, qui ont déjà leur propre ligne).
+    // Réel : les transactions du mois. Prévisionnel : les dépenses planifiées pas encore validées.
+    const catSource = tab === 'reel'
+      ? txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne')
+      : (planned ?? []).filter((p: any) => !p.is_validated)
+    const categoryData: Record<string, number> = {}
+    catSource.forEach((item: any) => {
+      const name = item.categories?.name ?? (item.envelope_slug === 'courses' ? 'Courses' : 'Sans catégorie')
+      categoryData[name] = (categoryData[name] ?? 0) + item.amount
+    })
+    const categoryTotal = Object.values(categoryData).reduce((s, v) => s + v, 0)
+
     return {
       income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay,
+      categoryData, categoryTotal,
     }
   }, [month, envelopes, transactions, planned, fixedItems, monthKey, tab])
 
-  const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay } = metrics
+  const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay, categoryData, categoryTotal } = metrics
 
   return (
     <div className="min-h-screen bg-black pb-24">
@@ -148,6 +161,16 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
               data={{ Fixe: totalCharges, Variable: variable, Courses: courses, Épargne: epargne }}
               total={income}
               centerLabel="Revenus"
+            />
+          </div>
+
+          {/* Répartition par catégorie */}
+          <div className="bg-[#1c1c1e] rounded-[20px] p-4">
+            <p className="text-[15px] font-semibold text-white mb-3">Répartition par catégorie</p>
+            <DonutChart
+              data={categoryData}
+              total={categoryTotal}
+              centerLabel="Dépensé"
             />
           </div>
         </div>
