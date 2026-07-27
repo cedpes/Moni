@@ -129,45 +129,45 @@ export default function RevenusShell({ workspaceId }: Props) {
   Object.entries(data).forEach(([k, v]) => { pctData[k] = total > 0 ? Math.round((v / total) * 100) : 0 })
 
   return (
-    <div className="min-h-screen bg-black pb-24">
-      <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-xl border-b border-white/10 px-5 pt-14 pb-3">
+    <div className="min-h-screen bg-[var(--bg-app)] pb-24">
+      <header className="sticky top-0 z-10 bg-[var(--header-blur-bg)] backdrop-blur-xl border-b border-[var(--border-default)] px-5 pt-14 pb-3">
         <div className="flex items-start justify-between">
-          <h1 className="text-[28px] font-bold tracking-tight text-white leading-tight">Revenus</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">Revenus</h1>
           <MonthPicker />
         </div>
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
+        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
-          <div className="bg-[#1c1c1e] rounded-[20px] p-5">
+          <div className="bg-[var(--bg-surface)] rounded-[20px] p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-[13px] text-[#8e8e93] mb-1">Total</p>
-                <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
+                <p className="text-[13px] text-[var(--text-secondary)] mb-1">Total</p>
+                <p className="text-[26px] font-bold text-[var(--text-primary)] tracking-tight">{fmt(total)}</p>
               </div>
               <button onClick={() => setShowPct(!showPct)}
-                className="flex bg-[#2c2c2e] rounded-full p-0.5 text-[12px] font-semibold">
-                <span className={`px-3 py-1 rounded-full ${!showPct ? 'bg-white text-black' : 'text-[#8e8e93]'}`}>€</span>
-                <span className={`px-3 py-1 rounded-full ${showPct ? 'bg-white text-black' : 'text-[#8e8e93]'}`}>%</span>
+                className="flex bg-[var(--bg-surface-2)] rounded-full p-0.5 text-[12px] font-semibold">
+                <span className={`px-3 py-1 rounded-full ${!showPct ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>€</span>
+                <span className={`px-3 py-1 rounded-full ${showPct ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>%</span>
               </button>
             </div>
             <DonutChart data={showPct ? pctData : data} total={showPct ? 100 : total} centerLabel="Total" />
           </div>
 
           <div className="flex items-center justify-between px-1">
-            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Historique des revenus</p>
-            <button onClick={openAdd} className="w-7 h-7 rounded-full bg-[#1c1c1e] flex items-center justify-center">
-              <Settings2 size={13} color="#8e8e93" />
+            <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)]">Historique des revenus</p>
+            <button onClick={openAdd} className="w-7 h-7 rounded-full bg-[var(--bg-surface)] flex items-center justify-center">
+              <Settings2 size={13} color="var(--text-secondary)" />
             </button>
           </div>
 
           {items.length === 0 ? (
-            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-10 text-center">
+            <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-10 text-center">
               <p className="text-[32px] mb-3">💵</p>
-              <p className="text-[15px] font-medium text-white">Aucun revenu</p>
-              <p className="text-[13px] text-[#8e8e93] mt-1">Appuie sur + pour en ajouter un</p>
+              <p className="text-[15px] font-medium text-[var(--text-primary)]">Aucun revenu</p>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1">Appuie sur + pour en ajouter un</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -178,25 +178,25 @@ export default function RevenusShell({ workspaceId }: Props) {
                   ? `${fmt(item.amount)} · tous les ${WEEKDAY_NAMES[isoWeekdayFromDueDay(item.due_day) - 1]}s (${countWeekdayOccurrences(monthKey, isoWeekdayFromDueDay(item.due_day))}× ce mois)`
                   : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
                 return (
-                  <div key={item.id} className="bg-[#1c1c1e] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? '#2c2c2e' }}>
+                  <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
+                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? 'var(--bg-surface-2)' }}>
                       {item.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-semibold text-white">{item.name}</p>
-                      <p className="text-[12px] text-[#8e8e93]">{subLabel}</p>
+                      <p className="text-[15px] font-semibold text-[var(--text-primary)]">{item.name}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)]">{subLabel}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                        <Pencil size={11} color="#8e8e93" />
+                      <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                        <Pencil size={11} color="var(--text-secondary)" />
                       </button>
-                      <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                        <X size={11} color="#8e8e93" />
+                      <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                        <X size={11} color="var(--text-secondary)" />
                       </button>
                       {!weekly && (
                         <button onClick={() => toggleDone(item)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[#2c2c2e] border border-white/10'}`}>
-                          <Check size={14} color={done ? 'white' : '#5a5a5e'} strokeWidth={2.5} />
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
+                          <Check size={14} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
                         </button>
                       )}
                     </div>
@@ -215,37 +215,37 @@ export default function RevenusShell({ workspaceId }: Props) {
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
+        <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
+          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">{editItem ? 'Modifier' : 'Nouveau revenu'}</h2>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                <X size={14} color="#8e8e93" />
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{editItem ? 'Modifier' : 'Nouveau revenu'}</h2>
+              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                <X size={14} color="var(--text-secondary)" />
               </button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Nom</label>
+                  <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="Salaire, Freelance…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
 
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Fréquence</label>
-                <div className="flex bg-[#2c2c2e] rounded-[12px] p-1 gap-1">
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Fréquence</label>
+                <div className="flex bg-[var(--bg-surface-2)] rounded-[12px] p-1 gap-1">
                   {([['monthly', 'Mensuel'], ['weekly', 'Hebdomadaire']] as const).map(([val, label]) => (
                     <button key={val} onClick={() => setFFrequency(val)}
-                      className={`flex-1 h-9 rounded-[9px] text-[13px] font-semibold transition-all ${fFrequency === val ? 'bg-white text-black' : 'text-[#8e8e93]'}`}>
+                      className={`flex-1 h-9 rounded-[9px] text-[13px] font-semibold transition-all ${fFrequency === val ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
                       {label}
                     </button>
                   ))}
@@ -254,28 +254,28 @@ export default function RevenusShell({ workspaceId }: Props) {
 
               {fFrequency === 'monthly' ? (
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de réception</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour de réception</label>
                   <input type="number" min="1" max="31"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="Ex : 28" value={fDay} onChange={e => setFDay(e.target.value)} />
                 </div>
               ) : (
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de la semaine</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour de la semaine</label>
                   <div className="grid grid-cols-4 gap-2">
                     {WEEKDAY_NAMES.map((name, i) => (
                       <button key={name} onClick={() => setFWeekday(i + 1)}
-                        className={`h-10 rounded-[10px] text-[13px] font-medium transition-all border ${fWeekday === i + 1 ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-white/10 bg-[#2c2c2e] text-[#8e8e93]'}`}>
+                        className={`h-10 rounded-[10px] text-[13px] font-medium transition-all border ${fWeekday === i + 1 ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
                         {name}
                       </button>
                     ))}
                   </div>
-                  <p className="text-[12px] text-[#8e8e93] mt-2">Compté automatiquement 4 ou 5 fois selon le mois.</p>
+                  <p className="text-[12px] text-[var(--text-secondary)] mt-2">Compté automatiquement 4 ou 5 fois selon le mois.</p>
                 </div>
               )}
 
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Icône</label>
                 <div className="flex flex-wrap gap-2">
                   {INCOME_ICONS.map(icon => (
                     <button key={icon} onClick={() => setFIcon(icon)}
@@ -285,17 +285,17 @@ export default function RevenusShell({ workspaceId }: Props) {
                 </div>
               </div>
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Couleur</label>
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Couleur</label>
                 <div className="flex gap-2">
                   {COLORS.map(color => (
                     <button key={color} onClick={() => setFColor(color)}
-                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[#1c1c1e] ring-[#3b82f6]' : ''}`}
+                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-[#3b82f6]' : ''}`}
                       style={{ background: color }} />
                   ))}
                 </div>
               </div>
               <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency === 'monthly' && !fDay)}
-                className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}
               </button>

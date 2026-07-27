@@ -52,25 +52,25 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
   const [tab, setTab] = useState<Tab>('courante')
 
   return (
-    <div className="min-h-screen bg-black pb-24">
-      <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-xl border-b border-white/10 px-5 pt-14 pb-3">
+    <div className="min-h-screen bg-[var(--bg-app)] pb-24">
+      <header className="sticky top-0 z-10 bg-[var(--header-blur-bg)] backdrop-blur-xl border-b border-[var(--border-default)] px-5 pt-14 pb-3">
         <div className="flex items-start justify-between mb-3">
-          <h1 className="text-[28px] font-bold tracking-tight text-white leading-tight">Dépenses</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">Dépenses</h1>
           <div className="flex items-center gap-2 mt-1">
-            <button onClick={() => router.push('/calendar')} className="w-8 h-8 rounded-full bg-[#1c1c1e] border border-white/10 flex items-center justify-center">
-              <CalendarDays size={15} color="#8e8e93" />
+            <button onClick={() => router.push('/calendar')} className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
+              <CalendarDays size={15} color="var(--text-secondary)" />
             </button>
             <MonthPicker />
           </div>
         </div>
-        <div className="flex bg-[#1c1c1e] rounded-[14px] p-1 gap-1">
+        <div className="flex bg-[var(--bg-surface)] rounded-[14px] p-1 gap-1">
           {([
             { id: 'courante', label: 'Courante' },
             { id: 'fixe', label: 'Fixe' },
             { id: 'previsionnel', label: 'Prévisionnel' },
           ] as { id: Tab; label: string }[]).map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
-              className={`flex-1 h-8 rounded-[10px] text-[13px] font-semibold transition-all ${tab === t.id ? 'bg-white text-black' : 'text-[#8e8e93]'}`}>
+              className={`flex-1 h-8 rounded-[10px] text-[13px] font-semibold transition-all ${tab === t.id ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
               {t.label}
             </button>
           ))}
@@ -161,51 +161,51 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
   return (
     <>
       {loading ? (
-        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
+        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
-          <div className="bg-[#1c1c1e] rounded-[20px] p-5">
-            <p className="text-[13px] text-[#8e8e93] mb-1">Dépensé ce mois (courant)</p>
-            <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
+          <div className="bg-[var(--bg-surface)] rounded-[20px] p-5">
+            <p className="text-[13px] text-[var(--text-secondary)] mb-1">Dépensé ce mois (courant)</p>
+            <p className="text-[26px] font-bold text-[var(--text-primary)] tracking-tight">{fmt(total)}</p>
           </div>
 
-          <div className="bg-[#1c1c1e] rounded-[16px] px-4 py-3.5 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-[10px] bg-[#2c2c2e] flex items-center justify-center flex-shrink-0">
-              <Info size={15} color="#8e8e93" />
+          <div className="bg-[var(--bg-surface)] rounded-[16px] px-4 py-3.5 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[10px] bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
+              <Info size={15} color="var(--text-secondary)" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[12px] text-[#8e8e93]">Restant prévisionnel du mois</p>
+              <p className="text-[12px] text-[var(--text-secondary)]">Restant prévisionnel du mois</p>
               <p className={`text-[16px] font-bold ${restantPrevisionnel >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(restantPrevisionnel)}</p>
             </div>
           </div>
 
-          <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93] px-1">
+          <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">
             {courantes.length} dépense{courantes.length > 1 ? 's' : ''}
           </p>
 
           {courantes.length === 0 ? (
-            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-10 text-center">
+            <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-10 text-center">
               <p className="text-[32px] mb-3">💸</p>
-              <p className="text-[15px] font-medium text-white">Aucune dépense courante</p>
-              <p className="text-[13px] text-[#8e8e93] mt-1">Ex : boulangerie, essence… Appuie sur + pour en ajouter une</p>
+              <p className="text-[15px] font-medium text-[var(--text-primary)]">Aucune dépense courante</p>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1">Ex : boulangerie, essence… Appuie sur + pour en ajouter une</p>
             </div>
           ) : (
-            <div className="bg-[#1c1c1e] rounded-[20px] overflow-hidden">
+            <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
               {courantes.map((t: any, i: number) => {
                 const catName = t.categories?.name ?? 'Autre'
                 const icon = t.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
-                const bg = CAT_COLORS[catName] ?? '#2c2c2e'
+                const bg = CAT_COLORS[catName] ?? 'var(--bg-surface-2)'
                 return (
-                  <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < courantes.length - 1 ? 'border-b border-white/5' : ''}`}>
+                  <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < courantes.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
                     <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: bg }}>{icon}</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-medium text-white truncate">{t.label}</p>
-                      <p className="text-[12px] text-[#8e8e93]">{catName} · {t.date}</p>
+                      <p className="text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)]">{catName} · {t.date}</p>
                     </div>
                     <p className="text-[15px] font-semibold text-[#f87171] flex-shrink-0">−{fmt(t.amount)}</p>
                     <button onClick={() => deleteTransaction(t.id)} disabled={deleting === t.id}
-                      className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center flex-shrink-0">
-                      {deleting === t.id ? <Loader2 size={11} className="animate-spin text-[#8e8e93]" /> : <X size={11} color="#8e8e93" />}
+                      className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
+                      {deleting === t.id ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
                     </button>
                   </div>
                 )
@@ -222,46 +222,46 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
+        <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
+          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">Nouvelle dépense courante</h2>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                <X size={14} color="#8e8e93" />
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Nouvelle dépense courante</h2>
+              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                <X size={14} color="var(--text-secondary)" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Libellé</label>
+                <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : Boulangerie, essence…" value={fLabel} onChange={e => setFLabel(e.target.value)} autoFocus />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="0.00" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Date</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Date</label>
                   <input type="date"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     value={fDate} onChange={e => setFDate(e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Catégorie</label>
-                <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none appearance-none"
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Catégorie</label>
+                <select className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none appearance-none"
                   value={fCatId} onChange={e => setFCatId(e.target.value)}>
                   <option value="">Sans catégorie</option>
                   {categories.map((c: any) => <option key={c.id} value={c.id}>{c.icon ?? CAT_ICONS[c.name] ?? '📦'} {c.name}</option>)}
                 </select>
               </div>
               <button onClick={addTransaction} disabled={saving || !fLabel || !fAmount}
-                className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}Ajouter
               </button>
             </div>
@@ -368,22 +368,22 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
   return (
     <>
       {loading ? (
-        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
+        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : items.length === 0 ? (
         <div className="flex flex-col items-center justify-center pt-32 px-8 text-center">
-          <p className="text-[15px] text-[#8e8e93]">Ajoutez un abonnement ou une charge en cliquant sur le +</p>
+          <p className="text-[15px] text-[var(--text-secondary)]">Ajoutez un abonnement ou une charge en cliquant sur le +</p>
         </div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
-          <div className="bg-[#1c1c1e] rounded-[20px] p-5">
+          <div className="bg-[var(--bg-surface)] rounded-[20px] p-5">
             <div className="flex items-end justify-between mb-3">
               <div>
-                <p className="text-[13px] text-[#8e8e93] mb-1">Total charges</p>
-                <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
+                <p className="text-[13px] text-[var(--text-secondary)] mb-1">Total charges</p>
+                <p className="text-[26px] font-bold text-[var(--text-primary)] tracking-tight">{fmt(total)}</p>
               </div>
-              <p className="text-[13px] text-[#8e8e93]">{fmt(remain)} restant</p>
+              <p className="text-[13px] text-[var(--text-secondary)]">{fmt(remain)} restant</p>
             </div>
-            <div className="h-1.5 bg-[#2c2c2e] rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--bg-surface-2)] rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-[#34c759] transition-all" style={{ width: `${total > 0 ? Math.min(100, Math.round(paid / total * 100)) : 0}%` }} />
             </div>
           </div>
@@ -393,24 +393,24 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
               const done = isDone(item.id)
               const cat = CATEGORIES.find(c => c.id === item.category)
               return (
-                <div key={item.id} className="bg-[#1c1c1e] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? '#2c2c2e' }}>
+                <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? 'var(--bg-surface-2)' }}>
                     {item.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-semibold text-white">{item.name}</p>
-                    <p className="text-[12px] text-[#8e8e93]">{cat ? `${cat.icon} ${cat.id} · ` : ''}{fmt(item.amount)} · le {item.due_day}</p>
+                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">{item.name}</p>
+                    <p className="text-[12px] text-[var(--text-secondary)]">{cat ? `${cat.icon} ${cat.id} · ` : ''}{fmt(item.amount)} · le {item.due_day}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                      <Pencil size={11} color="#8e8e93" />
+                    <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                      <Pencil size={11} color="var(--text-secondary)" />
                     </button>
-                    <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                      <X size={11} color="#8e8e93" />
+                    <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                      <X size={11} color="var(--text-secondary)" />
                     </button>
                     <button onClick={() => toggleDone(item)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[#2c2c2e] border border-white/10'}`}>
-                      <Check size={14} color={done ? 'white' : '#5a5a5e'} strokeWidth={2.5} />
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
+                      <Check size={14} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
                     </button>
                   </div>
                 </div>
@@ -427,42 +427,42 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
+        <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
+          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">{editItem ? 'Modifier' : 'Nouvelle dépense fixe'}</h2>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                <X size={14} color="#8e8e93" />
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{editItem ? 'Modifier' : 'Nouvelle dépense fixe'}</h2>
+              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                <X size={14} color="var(--text-secondary)" />
               </button>
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Nom</label>
+                  <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="Loyer, Netflix…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de prélèvement</label>
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour de prélèvement</label>
                 <input type="number" min="1" max="31"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : 5" value={fDay} onChange={e => setFDay(e.target.value)} />
               </div>
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Catégorie</label>
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Catégorie</label>
                 <div className="grid grid-cols-3 gap-2">
                   {CATEGORIES.map(cat => (
                     <button key={cat.id} onClick={() => setFCategory(cat.id)}
-                      className={`h-10 rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-medium transition-all border ${fCategory === cat.id ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-white/10 bg-[#2c2c2e] text-[#8e8e93]'}`}>
+                      className={`h-10 rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-medium transition-all border ${fCategory === cat.id ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
                       <span>{cat.icon}</span>
                       <span className="truncate">{cat.id}</span>
                     </button>
@@ -470,7 +470,7 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
                 </div>
               </div>
               <button onClick={saveItem} disabled={saving || !fName || !fAmount || !fDay}
-                className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}
               </button>
@@ -609,31 +609,31 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
   return (
     <>
       {loading ? (
-        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
+        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-3">
-          <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-3.5 flex gap-3">
+          <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-3.5 flex gap-3">
             <span className="text-lg mt-0.5">{planned.length === 0 ? '📋' : totalPending > 0 ? '⏳' : '✅'}</span>
-            <p className="text-[13px] text-[#d1d1d6] leading-relaxed">
+            <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
               {planned.length === 0
                 ? 'Aucune dépense planifiée. Ajoute ce que tu prévois de dépenser.'
                 : totalPending > 0
-                ? <>{pending.length} dépense{pending.length > 1 ? 's' : ''} à valider · <strong className="text-white">{fmt(totalPending)}</strong> prévus. Appuie sur ✓ pour la faire passer en courante.</>
+                ? <>{pending.length} dépense{pending.length > 1 ? 's' : ''} à valider · <strong className="text-[var(--text-primary)]">{fmt(totalPending)}</strong> prévus. Appuie sur ✓ pour la faire passer en courante.</>
                 : <>Tout est validé ce mois !</>
               }
             </p>
           </div>
 
           {planned.length === 0 && (
-            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-3.5 flex items-center justify-between gap-3">
+            <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-3.5 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-[10px] bg-[#1e3a5f] flex items-center justify-center flex-shrink-0">
                   <Copy size={16} color="#60a5fa" />
                 </div>
-                <p className="text-[13px] text-[#d1d1d6]">Copier les récurrents du mois précédent ?</p>
+                <p className="text-[13px] text-[var(--text-body)]">Copier les récurrents du mois précédent ?</p>
               </div>
               <button onClick={copyPrevMonth}
-                className="px-3 py-1.5 bg-[#2c2c2e] rounded-[10px] text-[13px] font-medium text-white active:scale-95 whitespace-nowrap">
+                className="px-3 py-1.5 bg-[var(--bg-surface-2)] rounded-[10px] text-[13px] font-medium text-[var(--text-primary)] active:scale-95 whitespace-nowrap">
                 Copier
               </button>
             </div>
@@ -641,8 +641,8 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
 
           {pending.length > 0 && (
             <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93] px-1">À valider</p>
-              <div className="bg-[#1c1c1e] rounded-[20px] overflow-hidden">
+              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">À valider</p>
+              <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
                 {pending.map((p: any, i: number) => (
                   <PlannedRow key={p.id} item={p} isLast={i === pending.length - 1}
                     deleting={deleting === p.id} validating={validating === p.id}
@@ -656,8 +656,8 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
 
           {validated.length > 0 && (
             <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93] px-1">Validés ✓</p>
-              <div className="bg-[#1c1c1e] rounded-[20px] overflow-hidden">
+              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">Validés ✓</p>
+              <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
                 {validated.map((p: any, i: number) => (
                   <PlannedRow key={p.id} item={p} isLast={i === validated.length - 1}
                     deleting={deleting === p.id} validating={validating === p.id}
@@ -678,32 +678,32 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
       </button>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
+        <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
+          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">{editingId ? 'Modifier la dépense' : 'Nouvelle dépense prévue'}</h2>
-              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                <X size={14} color="#8e8e93" />
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{editingId ? 'Modifier la dépense' : 'Nouvelle dépense prévue'}</h2>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                <X size={14} color="var(--text-secondary)" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Libellé</label>
+                <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                   placeholder="Ex : Cinéma, essence…" value={fLabel} onChange={e => setFLabel(e.target.value)} autoFocus />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Catégorie</label>
-                  <select className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none appearance-none"
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Catégorie</label>
+                  <select className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none appearance-none"
                     value={fCatId} onChange={e => setFCatId(e.target.value)}>
                     <option value="">Sans catégorie</option>
                     {categories.map((c: any) => <option key={c.id} value={c.id}>{c.icon ?? ''} {c.name}</option>)}
@@ -711,15 +711,15 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
                 </div>
               </div>
               <div className="flex items-center justify-between py-1">
-                <span className="text-[15px] text-white">Récurrent (chaque mois)</span>
+                <span className="text-[15px] text-[var(--text-primary)]">Récurrent (chaque mois)</span>
                 <button onClick={() => setFRecurring(!fRecurring)}
                   className="relative flex-shrink-0"
-                  style={{ width: 44, height: 26, borderRadius: 13, background: fRecurring ? '#34c759' : '#3a3a3c' }}>
+                  style={{ width: 44, height: 26, borderRadius: 13, background: fRecurring ? '#34c759' : 'var(--bg-surface-3)' }}>
                   <span className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow transition-transform ${fRecurring ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
                 </button>
               </div>
               <button onClick={savePlanned} disabled={saving || !fLabel || !fAmount}
-                className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editingId ? 'Enregistrer' : 'Ajouter'}
               </button>
@@ -737,17 +737,17 @@ function PlannedRow({ item, isLast, deleting, validating, onDelete, onEdit, onVa
 }) {
   const catName = item.categories?.name ?? 'Autre'
   const icon = item.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
-  const bg = CAT_COLORS[catName] ?? '#2c2c2e'
+  const bg = CAT_COLORS[catName] ?? 'var(--bg-surface-2)'
   const validated = item.is_validated
 
   return (
-    <div className={`flex items-center px-4 py-3.5 gap-3 ${!isLast ? 'border-b border-white/5' : ''} ${validated ? 'opacity-60' : ''}`}>
+    <div className={`flex items-center px-4 py-3.5 gap-3 ${!isLast ? 'border-b border-[var(--border-subtle)]' : ''} ${validated ? 'opacity-60' : ''}`}>
       <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg flex-shrink-0" style={{ background: bg }}>
         {validated ? '✓' : icon}
       </div>
       <div className="flex-1 min-w-0">
-        <p className={`text-[15px] font-medium truncate ${validated ? 'line-through text-[#8e8e93]' : 'text-white'}`}>{item.label}</p>
-        <p className="text-[12px] text-[#8e8e93]">{catName}</p>
+        <p className={`text-[15px] font-medium truncate ${validated ? 'line-through text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{item.label}</p>
+        <p className="text-[12px] text-[var(--text-secondary)]">{catName}</p>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         {item.is_recurring && !validated && (
@@ -755,11 +755,11 @@ function PlannedRow({ item, isLast, deleting, validating, onDelete, onEdit, onVa
             <RotateCcw size={10} />↺
           </span>
         )}
-        <p className={`text-[15px] font-semibold ${validated ? 'text-[#8e8e93]' : 'text-[#f87171]'}`}>−{fmt(item.amount)}</p>
+        <p className={`text-[15px] font-semibold ${validated ? 'text-[var(--text-secondary)]' : 'text-[#f87171]'}`}>−{fmt(item.amount)}</p>
 
         <button onClick={onEdit}
-          className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center active:scale-95">
-          <Pencil size={10} color="#8e8e93" />
+          className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center active:scale-95">
+          <Pencil size={10} color="var(--text-secondary)" />
         </button>
 
         {!validated ? (
@@ -770,14 +770,14 @@ function PlannedRow({ item, isLast, deleting, validating, onDelete, onEdit, onVa
         ) : (
           <button onClick={onUnvalidate} disabled={validating}
             className="w-7 h-7 rounded-full bg-[#34c759] flex items-center justify-center active:scale-95 transition-transform">
-            {validating ? <Loader2 size={12} className="animate-spin text-white" /> : <Check size={13} color="white" strokeWidth={2.5} />}
+            {validating ? <Loader2 size={12} className="animate-spin text-[var(--text-primary)]" /> : <Check size={13} color="white" strokeWidth={2.5} />}
           </button>
         )}
 
         {!validated && (
           <button onClick={onDelete} disabled={deleting}
-            className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center active:scale-95">
-            {deleting ? <Loader2 size={11} className="animate-spin text-[#8e8e93]" /> : <X size={11} color="#8e8e93" />}
+            className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center active:scale-95">
+            {deleting ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
           </button>
         )}
       </div>

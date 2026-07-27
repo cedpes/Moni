@@ -124,13 +124,13 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
   const reste = totalBudget - totalSpent
 
   return (
-    <div className="min-h-screen bg-black pb-24">
-      <header className="sticky top-0 z-10 bg-black/90 backdrop-blur-xl border-b border-white/10 px-5 pt-14 pb-3">
+    <div className="min-h-screen bg-[var(--bg-app)] pb-24">
+      <header className="sticky top-0 z-10 bg-[var(--header-blur-bg)] backdrop-blur-xl border-b border-[var(--border-default)] px-5 pt-14 pb-3">
         <div className="flex items-start justify-between">
-          <h1 className="text-[28px] font-bold tracking-tight text-white leading-tight">Dépenses variables</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">Dépenses variables</h1>
           <div className="flex items-center gap-2 mt-1">
-            <button onClick={() => router.push('/calendar')} className="w-8 h-8 rounded-full bg-[#1c1c1e] border border-white/10 flex items-center justify-center">
-              <CalendarDays size={15} color="#8e8e93" />
+            <button onClick={() => router.push('/calendar')} className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center">
+              <CalendarDays size={15} color="var(--text-secondary)" />
             </button>
             <MonthPicker />
             <button onClick={openAdd} className="w-8 h-8 rounded-full bg-[#3b82f6] flex items-center justify-center active:scale-95 transition-transform">
@@ -141,22 +141,22 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
       </header>
 
       {loading ? (
-        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
+        <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
           {/* Reste dans les enveloppes */}
-          <div className="bg-[#1c1c1e] rounded-[20px] p-6 flex flex-col items-center">
-            <p className="text-[13px] text-[#8e8e93] mb-4">Reste dans les enveloppes</p>
+          <div className="bg-[var(--bg-surface)] rounded-[20px] p-6 flex flex-col items-center">
+            <p className="text-[13px] text-[var(--text-secondary)] mb-4">Reste dans les enveloppes</p>
             <div className="relative w-[140px] h-[140px]">
               <svg width="140" height="140" viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r="60" fill="none" stroke="#2c2c2e" strokeWidth="10" />
+                <circle cx="70" cy="70" r="60" fill="none" stroke="var(--bg-surface-2)" strokeWidth="10" />
                 <circle cx="70" cy="70" r="60" fill="none" stroke="#a78bfa" strokeWidth="10"
                   strokeDasharray={(2 * Math.PI * 60).toFixed(1)}
                   strokeDashoffset={(totalBudget > 0 ? (2 * Math.PI * 60) * (1 - Math.max(0, Math.min(1, reste / totalBudget))) : 2 * Math.PI * 60).toFixed(1)}
                   strokeLinecap="round" transform="rotate(-90 70 70)" />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-[22px] font-bold tracking-tight text-white">{fmt(reste)}</span>
+                <span className="text-[22px] font-bold tracking-tight text-[var(--text-primary)]">{fmt(reste)}</span>
               </div>
             </div>
           </div>
@@ -167,14 +167,14 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
               { label: 'Budgeté', value: fmt(totalBudget) },
               { label: 'Dépensé', value: fmt(totalSpent) },
             ].map(({ label, value }) => (
-              <div key={label} className="bg-[#1c1c1e] rounded-[14px] py-3 text-center">
-                <p className="text-[11px] text-[#8e8e93] mb-1">{label}</p>
-                <p className="text-[14px] font-bold text-white tracking-tight">{value}</p>
+              <div key={label} className="bg-[var(--bg-surface)] rounded-[14px] py-3 text-center">
+                <p className="text-[11px] text-[var(--text-secondary)] mb-1">{label}</p>
+                <p className="text-[14px] font-bold text-[var(--text-primary)] tracking-tight">{value}</p>
               </div>
             ))}
           </div>
 
-          <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93] px-1 pt-1">Les enveloppes</p>
+          <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-1">Les enveloppes</p>
 
           <div className="space-y-2.5">
             {envelopes.map((env: any) => {
@@ -190,20 +190,20 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
               const plaisirAuto = income - charges - epargne - courses
               const displayBudget = isPlaisir ? Math.max(0, plaisirAuto) : env.budget
               const remain = displayBudget - spent
-              const borderColor = ENV_BORDER[env.slug] ?? '#3a3a3c'
+              const borderColor = ENV_BORDER[env.slug] ?? 'var(--bg-surface-3)'
 
               return (
                 <button key={env.id}
                   onClick={() => { if (isCourses) router.push('/courses'); if (isEpargne) router.push('/epargne') }}
-                  className="w-full text-left bg-[#1c1c1e] rounded-[16px] p-4 border"
+                  className="w-full text-left bg-[var(--bg-surface)] rounded-[16px] p-4 border"
                   style={{ borderColor }}>
                   <div className="flex items-center gap-3">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: env.color ?? ENV_COLORS[env.slug] ?? '#2c2c2e' }}>{env.icon}</div>
+                      style={{ background: env.color ?? ENV_COLORS[env.slug] ?? 'var(--bg-surface-2)' }}>{env.icon}</div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[15px] font-semibold text-white">{env.name}</p>
-                        {(isCharges || isPlaisir) && <span className="text-[10px] font-medium bg-[#2c2c2e] text-[#8e8e93] px-1.5 py-0.5 rounded-full">Auto</span>}
+                        <p className="text-[15px] font-semibold text-[var(--text-primary)]">{env.name}</p>
+                        {(isCharges || isPlaisir) && <span className="text-[10px] font-medium bg-[var(--bg-surface-2)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded-full">Auto</span>}
                       </div>
                       <p className="text-[13px] text-[#60a5fa] mt-1">• Montant : {fmt(displayBudget)}</p>
                       <p className={`text-[13px] mt-0.5 ${remain < 0 ? 'text-[#f87171]' : 'text-[#f87171]'}`}>• Restant: {fmt(remain)}</p>
@@ -214,17 +214,17 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                       )}
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      {(isCourses || isEpargne) && <ChevronRight size={16} color="#8e8e93" />}
+                      {(isCourses || isEpargne) && <ChevronRight size={16} color="var(--text-secondary)" />}
                       {!isPlaisir && !isCharges && (
                         <div className="flex gap-1.5">
                           <span onClick={(e) => { e.stopPropagation(); openEdit(env) }}
-                            className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                            <Pencil size={11} color="#8e8e93" />
+                            className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                            <Pencil size={11} color="var(--text-secondary)" />
                           </span>
                           {!env.is_system && (
                             <span onClick={(e) => { e.stopPropagation(); deleteEnvelope(env.id) }}
-                              className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                              <X size={11} color="#8e8e93" />
+                              className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                              <X size={11} color="var(--text-secondary)" />
                             </span>
                           )}
                         </div>
@@ -237,63 +237,63 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
           </div>
 
           {envelopes.length === 0 && (
-            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-10 text-center">
+            <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-10 text-center">
               <p className="text-[32px] mb-3">📦</p>
-              <p className="text-[15px] font-medium text-white">Aucune enveloppe</p>
-              <p className="text-[13px] text-[#8e8e93] mt-1">Appuie sur + pour en créer une</p>
+              <p className="text-[15px] font-medium text-[var(--text-primary)]">Aucune enveloppe</p>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-1">Appuie sur + pour en créer une</p>
             </div>
           )}
         </div>
       )}
 
       {showAdd && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
+        <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowAdd(false) }}>
-          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
+          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">{isEditingCourses ? 'Budget Courses' : editingId ? 'Modifier' : 'Nouvelle enveloppe'}</h2>
-              <button onClick={() => setShowAdd(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center"><X size={14} color="#8e8e93" /></button>
+              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">{isEditingCourses ? 'Budget Courses' : editingId ? 'Modifier' : 'Nouvelle enveloppe'}</h2>
+              <button onClick={() => setShowAdd(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center"><X size={14} color="var(--text-secondary)" /></button>
             </div>
             <div className="space-y-3">
               {isEditingCourses ? (
                 <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget prévisionnel du mois (€)</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Budget prévisionnel du mois (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} autoFocus />
-                  <p className="text-[12px] text-[#8e8e93] mt-2">Ce montant est le même que celui réglable depuis la page Courses (⚙). Le restant continue de baisser avec les passages ajoutés.</p>
+                  <p className="text-[12px] text-[var(--text-secondary)] mt-2">Ce montant est le même que celui réglable depuis la page Courses (⚙). Le restant continue de baisser avec les passages ajoutés.</p>
                 </div>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[13px] text-[#8e8e93] block mb-1.5">Nom</label>
-                      <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                      <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Nom</label>
+                      <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                         placeholder="Loyer, Netflix…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                     </div>
                     <div>
-                      <label className="text-[13px] text-[#8e8e93] block mb-1.5">Budget (€)</label>
+                      <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Budget (€)</label>
                       <input type="number" step="0.01" min="0"
-                        className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                        className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                         placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} />
                     </div>
                   </div>
                   {isEditingEpargne && (
-                    <p className="text-[12px] text-[#8e8e93] -mt-1">
+                    <p className="text-[12px] text-[var(--text-secondary)] -mt-1">
                       {activeGoal
                         ? `La différence avec le montant actuel sera ajoutée à l'objectif "${activeGoal.name}" (${fmt(activeGoal.current_amount ?? 0)} / ${fmt(activeGoal.target_amount ?? 0)}). Le total reste d'un mois à l'autre jusqu'à ce que tu supprimes le projet dans l'onglet Épargne.`
                         : `Aucun objectif actif — crée-en un dans l'onglet Épargne pour que ce montant s'accumule mois après mois.`}
                     </p>
                   )}
                   <div>
-                    <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
+                    <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
                     <input type="number" min="1" max="31"
-                      className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                      className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                       placeholder="Ex : 5 pour le 5 du mois" value={fDueDay} onChange={e => setFDueDay(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
+                    <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Icône</label>
                     <div className="flex flex-wrap gap-2">
                       {ICONS.map(icon => (
                         <button key={icon} onClick={() => setFIcon(icon)}
@@ -303,11 +303,11 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                     </div>
                   </div>
                   <div>
-                    <label className="text-[13px] text-[#8e8e93] block mb-1.5">Couleur</label>
+                    <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Couleur</label>
                     <div className="flex gap-2">
                       {COLORS.map(color => (
                         <button key={color} onClick={() => setFColor(color)}
-                          className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[#1c1c1e] ring-[#3b82f6]' : ''}`}
+                          className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-[#3b82f6]' : ''}`}
                           style={{ background: color }} />
                       ))}
                     </div>
@@ -315,7 +315,7 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                 </>
               )}
               <button onClick={saveEnvelope} disabled={saving || !fBudget || (!isEditingCourses && !fName)}
-                className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-2 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {isEditingCourses ? 'Enregistrer' : editingId ? 'Enregistrer' : 'Créer'}
               </button>

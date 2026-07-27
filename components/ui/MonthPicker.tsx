@@ -10,15 +10,15 @@ export default function MonthPicker() {
     <div className="flex items-center gap-1">
       <button
         onClick={goPrev}
-        className="w-7 h-7 rounded-full bg-[#1c1c1e] border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+        className="w-7 h-7 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center active:scale-95 transition-transform"
         aria-label="Mois précédent"
       >
-        <ChevronLeft size={14} color="#ffffff" />
+        <ChevronLeft size={14} color="var(--text-primary)" />
       </button>
 
       <button
         onClick={goToday}
-        className="px-3 h-7 bg-[#1c1c1e] border border-white/10 rounded-full text-[13px] font-semibold text-white flex items-center gap-1 active:scale-95 transition-transform min-w-[110px] justify-center"
+        className="px-3 h-7 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-full text-[13px] font-semibold text-[var(--text-primary)] flex items-center gap-1 active:scale-95 transition-transform min-w-[110px] justify-center"
       >
         {monthLabel}
         {!isCurrentMonth && (
@@ -28,10 +28,10 @@ export default function MonthPicker() {
 
       <button
         onClick={goNext}
-        className="w-7 h-7 rounded-full bg-[#1c1c1e] border border-white/10 flex items-center justify-center active:scale-95 transition-transform"
+        className="w-7 h-7 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center active:scale-95 transition-transform"
         aria-label="Mois suivant"
       >
-        <ChevronRight size={14} color="#ffffff" />
+        <ChevronRight size={14} color="var(--text-primary)" />
       </button>
     </div>
   )

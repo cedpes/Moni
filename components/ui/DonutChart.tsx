@@ -39,7 +39,7 @@ export default function DonutChart({
     <div className="flex items-center gap-4">
       <div className="flex-shrink-0">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#2c2c2e" strokeWidth={thickness} />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--bg-surface-2)" strokeWidth={thickness} />
           {slices.length > 0 ? slices.map(({ label, dash, gap, offset, color }) => (
             <circle key={label} cx={cx} cy={cy} r={r} fill="none"
               stroke={color} strokeWidth={thickness}
@@ -47,23 +47,23 @@ export default function DonutChart({
               strokeDashoffset={offset.toFixed(2)}
               transform={`rotate(-90 ${cx} ${cy})`} />
           )) : null}
-          <text x={cx} y={cy - 6} textAnchor="middle" fontSize="11" fill="#8e8e93">{centerLabel}</text>
-          <text x={cx} y={cy + 10} textAnchor="middle" fontSize="14" fontWeight="700" fill="#ffffff">
+          <text x={cx} y={cy - 6} textAnchor="middle" fontSize="11" fill="var(--text-secondary)">{centerLabel}</text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--text-primary)">
             {Math.round(total)}€
           </text>
         </svg>
       </div>
       <div className="flex-1 space-y-2 min-w-0">
-        {slices.length === 0 && <p className="text-[13px] text-[#8e8e93]">Aucune donnée</p>}
+        {slices.length === 0 && <p className="text-[13px] text-[var(--text-secondary)]">Aucune donnée</p>}
         {slices.map(({ label, amount, pct, color }) => (
           <div key={label} className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: color }} />
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline">
-                <p className="text-[12px] font-medium text-white truncate">{label}</p>
-                <p className="text-[12px] text-[#8e8e93] ml-1 flex-shrink-0">{Math.round(pct * 100)}%</p>
+                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{label}</p>
+                <p className="text-[12px] text-[var(--text-secondary)] ml-1 flex-shrink-0">{Math.round(pct * 100)}%</p>
               </div>
-              <p className="text-[11px] text-[#8e8e93]">{Math.round(amount)}€</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">{Math.round(amount)}€</p>
             </div>
           </div>
         ))}
