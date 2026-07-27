@@ -35,10 +35,15 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
       .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne')
       .reduce((s: number, t: any) => s + t.amount, 0)
 
-    // Prévisionnel : budget alloué aux enveloppes variables (plaisir, courses, etc.)
-    const variablePrevu = envelopes
-      .filter((e: any) => e.slug !== 'charges' && e.slug !== 'epargne')
-      .reduce((s: number, e: any) => s + e.budget, 0)
+    // Prévisionnel : dépenses planifiées pas encore validées (onglet Dépenses > Prévisionnel)
+    // + budget Courses du mois. C'est ce qui n'est "pas encore" dépensé mais déjà prévu,
+    // contrairement à l'enveloppe Plaisir qui n'est qu'un solde théorique (tout ce qui reste).
+    const coursesEnv = envelopes.find((e: any) => e.slug === 'courses')
+    const coursesBudget = coursesEnv?.budget ?? 0
+    const totalPlannedPending = (planned ?? [])
+      .filter((p: any) => !p.is_validated)
+      .reduce((s: number, p: any) => s + p.amount, 0)
+    const variablePrevu = totalPlannedPending + coursesBudget
 
     const variable = tab === 'reel' ? variableReal : variablePrevu
     const restant = income - totalCharges - variable - epargne
@@ -56,7 +61,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
       income, totalCharges, variable, epargne, restant, daysLeft, perDay,
       fixePct, variablePct, epargnePct,
     }
-  }, [month, envelopes, transactions, fixedItems, monthKey, tab])
+  }, [month, envelopes, transactions, planned, fixedItems, monthKey, tab])
 
   const { income, totalCharges, variable, epargne, restant, daysLeft, perDay, fixePct, variablePct, epargnePct } = metrics
 
