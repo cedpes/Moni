@@ -117,6 +117,8 @@ export default function EpargneShell({ workspaceId }: Props) {
   }
 
   const total = goals.reduce((s, g) => s + g.current_amount, 0)
+  const totalTarget = goals.reduce((s, g) => s + g.target_amount, 0)
+  const totalRemaining = Math.max(0, totalTarget - total)
   const data: Record<string, number> = {}
   goals.forEach(g => { data[g.name] = g.current_amount })
 
@@ -141,8 +143,16 @@ export default function EpargneShell({ workspaceId }: Props) {
       ) : (
         <div className="px-4 pt-5 space-y-4">
           <div className="bg-[#1c1c1e] rounded-[20px] p-5">
-            <p className="text-[13px] text-[#8e8e93] mb-1">Total</p>
-            <p className="text-[26px] font-bold text-white tracking-tight mb-4">{fmt(total)}</p>
+            <div className="flex items-end justify-between mb-4">
+              <div>
+                <p className="text-[13px] text-[#8e8e93] mb-1">Total épargné</p>
+                <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[13px] text-[#8e8e93] mb-1">Reste à épargner</p>
+                <p className="text-[18px] font-bold text-[#fbbf24] tracking-tight">{fmt(totalRemaining)}</p>
+              </div>
+            </div>
             <DonutChart data={data} total={total} centerLabel="Total" />
           </div>
 
