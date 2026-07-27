@@ -64,11 +64,24 @@ export default async function DepensesPage() {
   const existingNames = new Set((categories ?? []).map((c: any) => c.name))
   const missing = defaults.filter(d => !existingNames.has(d.name))
   if (missing.length > 0) {
-    await Promise.all(missing.map(c => pb.collection('categories').create({ workspace_id: workspaceId, ...c })))
-    categories = await pb.collection('categories').getFullList({
-      filter: `workspace_id="${workspaceId}"`,
-      sort: 'name',
+    // allSettled : si une catégorie échoue à la création (ex: contrainte PocketBase),
+    // ça ne doit pas faire planter le chargement de toute la page.
+    const results = await Promise.allSettled(
+      missing.map(c => pb.collection('categories').create({ workspace_id: workspaceId, ...c }))
+    )
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.error('Erreur création catégorie', missing[i].name, r.reason)
+      }
     })
+    try {
+      categories = await pb.collection('categories').getFullList({
+        filter: `workspace_id="${workspaceId}"`,
+        sort: 'name',
+      })
+    } catch (err) {
+      console.error('Erreur rechargement catégories', err)
+    }
   }
 
   return <DepensesShell workspaceId={workspaceId} userId={user.id} categories={categories ?? []} />
