@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
-import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt } from '@/lib/utils'
+import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
 import { Plus, X, Loader2, Check, Pencil, Settings2 } from 'lucide-react'
@@ -24,9 +23,8 @@ interface Income {
 const INCOME_ICONS = ['💵', '💼', '🏦', '💻', '🎨', '📊', '🏪', '💰']
 const COLORS = ['#fff3e0', '#f3f0ff', '#e8faf0', '#e8f4ff', '#fef0f5', '#fff8e6', '#f0f7ff', '#f5f5f7']
 
-export default function RevenusShell({ workspaceId, userId }: Props) {
+export default function RevenusShell({ workspaceId }: Props) {
   const { monthKey } = useMonth()
-  const { month, transactions, refetch: refetchMonth } = useMonthData(monthKey, workspaceId)
   const [items, setItems] = useState<Income[]>([])
   const [statuses, setStatuses] = useState<{ fixed_item_id: string; id?: string; is_done: boolean }[]>([])
   const [loading, setLoading] = useState(true)
@@ -37,47 +35,11 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
 
   const [fName, setFName] = useState('')
   const [fAmount, setFAmount] = useState('')
-  const [fDay, setFDay] = useState('')
+  const [fFrequency, setFFrequency] = useState<'monthly' | 'weekly'>('monthly')
+  const [fDay, setFDay] = useState('') // jour du mois (1-31), si mensuel
+  const [fWeekday, setFWeekday] = useState(3) // jour de la semaine ISO (1=Lundi...7=Dimanche), si hebdomadaire, défaut Mercredi
   const [fIcon, setFIcon] = useState('💵')
   const [fColor, setFColor] = useState('#e8faf0')
-
-  // Revenus variables : paiements reçus au fil de l'eau (ex: paie hebdo imprévisible),
-  // logués comme des transactions avec envelope_slug = 'revenu'.
-  const [showVarModal, setShowVarModal] = useState(false)
-  const [varSaving, setVarSaving] = useState(false)
-  const [varDeleting, setVarDeleting] = useState<string | null>(null)
-  const [vLabel, setVLabel] = useState('')
-  const [vAmount, setVAmount] = useState('')
-  const [vDate, setVDate] = useState(new Date().toISOString().slice(0, 10))
-
-  const variableEntries = transactions
-    .filter((t: any) => t.envelope_slug === 'revenu')
-    .sort((a: any, b: any) => b.date.localeCompare(a.date))
-  const variableTotal = variableEntries.reduce((s: number, t: any) => s + t.amount, 0)
-
-  function openAddVar() {
-    setVLabel(''); setVAmount(''); setVDate(new Date().toISOString().slice(0, 10)); setShowVarModal(true)
-  }
-
-  async function addVariableIncome() {
-    const amount = parseFloat(vAmount)
-    if (!vLabel.trim() || !amount || !month) return
-    setVarSaving(true)
-    const pb = createClient()
-    await pb.collection('transactions').create({
-      month_id: month.id, workspace_id: workspaceId,
-      envelope_slug: 'revenu', label: vLabel.trim(), amount,
-      date: vDate || new Date().toISOString().slice(0, 10), created_by: userId,
-    })
-    setVarSaving(false); setShowVarModal(false); refetchMonth()
-  }
-
-  async function deleteVariableIncome(id: string) {
-    setVarDeleting(id)
-    const pb = createClient()
-    await pb.collection('transactions').delete(id)
-    setVarDeleting(null); refetchMonth()
-  }
 
   async function fetchData() {
     setLoading(true)
@@ -122,23 +84,30 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
   }
 
   function openAdd() {
-    setFName(''); setFAmount(''); setFDay(''); setFIcon('💵'); setFColor('#e8faf0')
+    setFName(''); setFAmount(''); setFFrequency('monthly'); setFDay(''); setFWeekday(3); setFIcon('💵'); setFColor('#e8faf0')
     setEditItem(null); setShowModal(true)
   }
 
   function openEdit(item: Income) {
-    setFName(item.name); setFAmount(String(item.amount)); setFDay(String(item.due_day))
+    setFName(item.name); setFAmount(String(item.amount))
+    if (isWeeklyDueDay(item.due_day)) {
+      setFFrequency('weekly'); setFWeekday(isoWeekdayFromDueDay(item.due_day)); setFDay('')
+    } else {
+      setFFrequency('monthly'); setFDay(String(item.due_day))
+    }
     setFIcon(item.icon); setFColor(item.color ?? '#e8faf0')
     setEditItem(item); setShowModal(true)
   }
 
   async function saveItem() {
-    if (!fName.trim() || !fAmount || !fDay) return
+    if (!fName.trim() || !fAmount) return
+    if (fFrequency === 'monthly' && !fDay) return
     setSaving(true)
     const pb = createClient()
     const payload = {
       workspace_id: workspaceId, type: 'income', name: fName.trim(),
-      amount: parseFloat(fAmount), due_day: parseInt(fDay),
+      amount: parseFloat(fAmount),
+      due_day: fFrequency === 'weekly' ? weeklyDueDay(fWeekday) : parseInt(fDay),
       icon: fIcon, color: fColor, category: 'Revenu', is_active: true,
     }
     if (editItem) await pb.collection('fixed_items').update(editItem.id, payload)
@@ -152,9 +121,10 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
     fetchData()
   }
 
-  const total = items.reduce((s, i) => s + i.amount, 0)
+  // Montant effectif de chaque revenu pour le mois affiché (un item hebdo compte 4 ou 5 fois selon le mois)
+  const total = items.reduce((s, i) => s + fixedItemMonthlyAmount(i, monthKey), 0)
   const data: Record<string, number> = {}
-  items.forEach(i => { data[i.name] = (data[i.name] ?? 0) + i.amount })
+  items.forEach(i => { data[i.name] = (data[i.name] ?? 0) + fixedItemMonthlyAmount(i, monthKey) })
   const pctData: Record<string, number> = {}
   Object.entries(data).forEach(([k, v]) => { pctData[k] = total > 0 ? Math.round((v / total) * 100) : 0 })
 
@@ -171,18 +141,10 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
         <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
-          <div className="bg-[#1c1c1e] rounded-[20px] p-5 flex items-center justify-between">
-            <div>
-              <p className="text-[13px] text-[#8e8e93] mb-1">Revenu total du mois</p>
-              <p className="text-[26px] font-bold text-[#34d399] tracking-tight">{fmt(month?.income ?? (total + variableTotal))}</p>
-            </div>
-            <p className="text-[12px] text-[#8e8e93] text-right">Fixes {fmt(total)}<br />Variables {fmt(variableTotal)}</p>
-          </div>
-
           <div className="bg-[#1c1c1e] rounded-[20px] p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-[13px] text-[#8e8e93] mb-1">Revenus fixes</p>
+                <p className="text-[13px] text-[#8e8e93] mb-1">Total</p>
                 <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
               </div>
               <button onClick={() => setShowPct(!showPct)}
@@ -195,39 +157,7 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
           </div>
 
           <div className="flex items-center justify-between px-1">
-            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Revenus variables (ce mois)</p>
-            <button onClick={openAddVar} className="w-7 h-7 rounded-full bg-[#1c1c1e] flex items-center justify-center">
-              <Plus size={13} color="#8e8e93" />
-            </button>
-          </div>
-
-          {variableEntries.length === 0 ? (
-            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-8 text-center">
-              <p className="text-[28px] mb-2">💶</p>
-              <p className="text-[14px] font-medium text-white">Aucun revenu variable ce mois</p>
-              <p className="text-[12px] text-[#8e8e93] mt-1">Ex : paie hebdo. Appuie sur + pour en ajouter un</p>
-            </div>
-          ) : (
-            <div className="bg-[#1c1c1e] rounded-[20px] overflow-hidden">
-              {variableEntries.map((t: any, i: number) => (
-                <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < variableEntries.length - 1 ? 'border-b border-white/5' : ''}`}>
-                  <div className="w-9 h-9 rounded-[10px] bg-[#0f3d2e] flex items-center justify-center text-[16px] flex-shrink-0">💶</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-medium text-white truncate">{t.label}</p>
-                    <p className="text-[12px] text-[#8e8e93]">{new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</p>
-                  </div>
-                  <p className="text-[14px] font-semibold text-[#34d399] flex-shrink-0">+{fmt(t.amount)}</p>
-                  <button onClick={() => deleteVariableIncome(t.id)} disabled={varDeleting === t.id}
-                    className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center flex-shrink-0">
-                    {varDeleting === t.id ? <Loader2 size={11} className="animate-spin text-[#8e8e93]" /> : <X size={11} color="#8e8e93" />}
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between px-1">
-            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Historique des revenus fixes</p>
+            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Historique des revenus</p>
             <button onClick={openAdd} className="w-7 h-7 rounded-full bg-[#1c1c1e] flex items-center justify-center">
               <Settings2 size={13} color="#8e8e93" />
             </button>
@@ -243,6 +173,10 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
             <div className="space-y-2">
               {items.map(item => {
                 const done = isDone(item.id)
+                const weekly = isWeeklyDueDay(item.due_day)
+                const subLabel = weekly
+                  ? `${fmt(item.amount)} · tous les ${WEEKDAY_NAMES[isoWeekdayFromDueDay(item.due_day) - 1]}s (${countWeekdayOccurrences(monthKey, isoWeekdayFromDueDay(item.due_day))}× ce mois)`
+                  : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
                 return (
                   <div key={item.id} className="bg-[#1c1c1e] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
                     <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? '#2c2c2e' }}>
@@ -250,7 +184,7 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[15px] font-semibold text-white">{item.name}</p>
-                      <p className="text-[12px] text-[#8e8e93]">{fmt(item.amount)} · le {item.due_day} de chaque mois</p>
+                      <p className="text-[12px] text-[#8e8e93]">{subLabel}</p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
@@ -259,10 +193,12 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
                       <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
                         <X size={11} color="#8e8e93" />
                       </button>
-                      <button onClick={() => toggleDone(item)}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[#2c2c2e] border border-white/10'}`}>
-                        <Check size={14} color={done ? 'white' : '#5a5a5e'} strokeWidth={2.5} />
-                      </button>
+                      {!weekly && (
+                        <button onClick={() => toggleDone(item)}
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[#2c2c2e] border border-white/10'}`}>
+                          <Check size={14} color={done ? 'white' : '#5a5a5e'} strokeWidth={2.5} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 )
@@ -303,12 +239,41 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
+
               <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de réception</label>
-                <input type="number" min="1" max="31"
-                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                  placeholder="Ex : 28" value={fDay} onChange={e => setFDay(e.target.value)} />
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Fréquence</label>
+                <div className="flex bg-[#2c2c2e] rounded-[12px] p-1 gap-1">
+                  {([['monthly', 'Mensuel'], ['weekly', 'Hebdomadaire']] as const).map(([val, label]) => (
+                    <button key={val} onClick={() => setFFrequency(val)}
+                      className={`flex-1 h-9 rounded-[9px] text-[13px] font-semibold transition-all ${fFrequency === val ? 'bg-white text-black' : 'text-[#8e8e93]'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {fFrequency === 'monthly' ? (
+                <div>
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de réception</label>
+                  <input type="number" min="1" max="31"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    placeholder="Ex : 28" value={fDay} onChange={e => setFDay(e.target.value)} />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour de la semaine</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {WEEKDAY_NAMES.map((name, i) => (
+                      <button key={name} onClick={() => setFWeekday(i + 1)}
+                        className={`h-10 rounded-[10px] text-[13px] font-medium transition-all border ${fWeekday === i + 1 ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-white/10 bg-[#2c2c2e] text-[#8e8e93]'}`}>
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[12px] text-[#8e8e93] mt-2">Compté automatiquement 4 ou 5 fois selon le mois.</p>
+                </div>
+              )}
+
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
                 <div className="flex flex-wrap gap-2">
@@ -329,51 +294,10 @@ export default function RevenusShell({ workspaceId, userId }: Props) {
                   ))}
                 </div>
               </div>
-              <button onClick={saveItem} disabled={saving || !fName || !fAmount || !fDay}
+              <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency === 'monthly' && !fDay)}
                 className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showVarModal && (
-        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
-          onClick={e => { if (e.target === e.currentTarget) setShowVarModal(false) }}>
-          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">Revenu variable reçu</h2>
-              <button onClick={() => setShowVarModal(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
-                <X size={14} color="#8e8e93" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                  placeholder="Ex : Paie Artemis" value={vLabel} onChange={e => setVLabel(e.target.value)} autoFocus />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
-                  <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                    placeholder="0.00" value={vAmount} onChange={e => setVAmount(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Date</label>
-                  <input type="date"
-                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
-                    value={vDate} onChange={e => setVDate(e.target.value)} />
-                </div>
-              </div>
-              <button onClick={addVariableIncome} disabled={varSaving || !vLabel || !vAmount}
-                className="w-full h-12 bg-[#34d399] text-[#0f3d2e] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
-                {varSaving && <Loader2 size={16} className="animate-spin" />}
-                Ajouter
               </button>
             </div>
           </div>

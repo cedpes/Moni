@@ -30,9 +30,9 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const monthEnd = `${y}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`
     const txInMonth = transactions.filter((t: any) => t.date >= monthStart && t.date <= monthEnd)
 
-    // Réel : dépenses variables déjà réalisées (hors charges fixes, hors épargne, hors courses -> ligne à part, hors revenus variables)
+    // Réel : dépenses variables déjà réalisées (hors charges fixes, hors épargne, hors courses -> ligne à part)
     const variableReal = txInMonth
-      .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses' && t.envelope_slug !== 'revenu')
+      .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses')
       .reduce((s: number, t: any) => s + t.amount, 0)
     const coursesReal = txInMonth
       .filter((t: any) => t.envelope_slug === 'courses')
@@ -59,7 +59,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     // ajoutés tels quels (même valeur que les lignes au-dessus), et le reste des dépenses
     // "variables" (plaisir) est détaillé catégorie par catégorie.
     const catSource = tab === 'reel'
-      ? txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses' && t.envelope_slug !== 'revenu')
+      ? txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses')
       : (planned ?? []).filter((p: any) => !p.is_validated)
     const categoryData: Record<string, number> = {}
     catSource.forEach((item: any) => {

@@ -109,9 +109,9 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
   const [fDate, setFDate] = useState(new Date().toISOString().slice(0, 10))
   const [fCatId, setFCatId] = useState('')
 
-  // Toutes les dépenses courantes = transactions hors charges fixes et hors revenus variables
+  // Toutes les dépenses courantes = transactions hors charges fixes
   const courantes = useMemo(() => transactions
-    .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'revenu')
+    .filter((t: any) => t.envelope_slug !== 'charges')
     .sort((a: any, b: any) => b.date.localeCompare(a.date)), [transactions])
 
   const total = courantes.reduce((s: number, t: any) => s + t.amount, 0)

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
-import { getMonthLabel } from '@/lib/utils'
+import { getMonthLabel, fixedItemMonthlyAmount } from '@/lib/utils'
 
 // Ajoute un alias `.categories` (compatible avec l'ancien embed Supabase `*, categories(name, icon)`)
 // à partir de la relation PocketBase `expand.category_id`.
@@ -62,13 +62,11 @@ export function useMonthData(monthKey: string, workspaceId: string) {
         pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true` }),
       ])
 
-      // Calculer le total des charges fixes depuis fixed_items
-      const chargesTotal = (fixed ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + f.amount, 0)
-      // Revenu = revenus fixes récurrents (fixed_items) + revenus variables logués au fil de l'eau
-      // (transactions avec envelope_slug = 'revenu', ex: paie hebdo imprévisible d'un des membres du foyer).
-      const fixedIncomeTotal = (fixed ?? []).filter((f: any) => f.type === 'income').reduce((s: number, f: any) => s + f.amount, 0)
-      const variableIncomeTotal = (txs ?? []).filter((t: any) => t.envelope_slug === 'revenu').reduce((s: number, t: any) => s + t.amount, 0)
-      const incomeTotal = fixedIncomeTotal + variableIncomeTotal
+      // Calculer le total des charges/revenus fixes (les items hebdomadaires comptent 4 ou 5 fois selon le mois)
+      const chargesTotal = (fixed ?? []).filter((f: any) => f.type === 'charge')
+        .reduce((s: number, f: any) => s + fixedItemMonthlyAmount(f, monthKey), 0)
+      const incomeTotal = (fixed ?? []).filter((f: any) => f.type === 'income')
+        .reduce((s: number, f: any) => s + fixedItemMonthlyAmount(f, monthKey), 0)
 
       // Rattraper les enveloppes système manquantes (ex: mois créés avant l'ajout d'une enveloppe comme "épargne")
       const DEFAULT_ENVELOPES = [
