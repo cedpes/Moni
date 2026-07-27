@@ -463,6 +463,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [validating, setValidating] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [fLabel, setFLabel] = useState('')
   const [fAmount, setFAmount] = useState('')
   const [fCatId, setFCatId] = useState('')
@@ -508,16 +509,36 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
     refetch()
   }
 
-  async function addPlanned() {
+  async function savePlanned() {
     const amount = parseFloat(fAmount)
     if (!fLabel.trim() || !amount || !month) return
     setSaving(true)
     const pb = createClient()
-    await pb.collection('planned_expenses').create({
-      month_id: month.id, label: fLabel.trim(), amount,
-      category_id: fCatId || null, is_recurring: fRecurring, position: planned.length,
-    })
-    setSaving(false); setShowModal(false); refetch()
+    if (editingId) {
+      const item = planned.find((p: any) => p.id === editingId)
+      await pb.collection('planned_expenses').update(editingId, {
+        label: fLabel.trim(), amount, category_id: fCatId || null, is_recurring: fRecurring,
+      })
+      // Si la dépense était déjà validée, on garde la transaction réelle synchronisée.
+      if (item?.is_validated && item?.validated_transaction_id) {
+        await pb.collection('transactions').update(item.validated_transaction_id, {
+          label: fLabel.trim(), amount, category_id: fCatId || null,
+        })
+      }
+    } else {
+      await pb.collection('planned_expenses').create({
+        month_id: month.id, label: fLabel.trim(), amount,
+        category_id: fCatId || null, is_recurring: fRecurring, position: planned.length,
+      })
+    }
+    setSaving(false); setShowModal(false); setEditingId(null); refetch()
+  }
+
+  function openEdit(item: any) {
+    setEditingId(item.id)
+    setFLabel(item.label); setFAmount(String(item.amount))
+    setFCatId(item.category_id ?? ''); setFRecurring(item.is_recurring ?? false)
+    setShowModal(true)
   }
 
   async function deletePlanned(id: string) {
@@ -551,6 +572,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
   }
 
   function openAdd() {
+    setEditingId(null)
     setFLabel(''); setFAmount(''); setFCatId(''); setFRecurring(false); setShowModal(true)
   }
 
@@ -595,6 +617,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
                   <PlannedRow key={p.id} item={p} isLast={i === pending.length - 1}
                     deleting={deleting === p.id} validating={validating === p.id}
                     onDelete={() => deletePlanned(p.id)}
+                    onEdit={() => openEdit(p)}
                     onValidate={() => validateItem(p)} />
                 ))}
               </div>
@@ -609,6 +632,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
                   <PlannedRow key={p.id} item={p} isLast={i === validated.length - 1}
                     deleting={deleting === p.id} validating={validating === p.id}
                     onDelete={() => deletePlanned(p.id)}
+                    onEdit={() => openEdit(p)}
                     onUnvalidate={() => unvalidateItem(p)} />
                 ))}
               </div>
@@ -629,8 +653,8 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
           <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
             <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-white">Nouvelle dépense prévue</h2>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
+              <h2 className="text-[18px] font-bold text-white">{editingId ? 'Modifier la dépense' : 'Nouvelle dépense prévue'}</h2>
+              <button onClick={() => { setShowModal(false); setEditingId(null) }} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
                 <X size={14} color="#8e8e93" />
               </button>
             </div>
@@ -664,10 +688,10 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
                   <span className={`absolute top-[2px] w-[22px] h-[22px] bg-white rounded-full shadow transition-transform ${fRecurring ? 'translate-x-[18px]' : 'translate-x-[2px]'}`} />
                 </button>
               </div>
-              <button onClick={addPlanned} disabled={saving || !fLabel || !fAmount}
+              <button onClick={savePlanned} disabled={saving || !fLabel || !fAmount}
                 className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
-                Ajouter
+                {editingId ? 'Enregistrer' : 'Ajouter'}
               </button>
             </div>
           </div>
@@ -677,9 +701,9 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
   )
 }
 
-function PlannedRow({ item, isLast, deleting, validating, onDelete, onValidate, onUnvalidate }: {
+function PlannedRow({ item, isLast, deleting, validating, onDelete, onEdit, onValidate, onUnvalidate }: {
   item: any; isLast: boolean; deleting: boolean; validating: boolean
-  onDelete: () => void; onValidate?: () => void; onUnvalidate?: () => void
+  onDelete: () => void; onEdit: () => void; onValidate?: () => void; onUnvalidate?: () => void
 }) {
   const catName = item.categories?.name ?? 'Autre'
   const icon = item.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
@@ -702,6 +726,11 @@ function PlannedRow({ item, isLast, deleting, validating, onDelete, onValidate, 
           </span>
         )}
         <p className={`text-[15px] font-semibold ${validated ? 'text-[#8e8e93]' : 'text-[#f87171]'}`}>−{fmt(item.amount)}</p>
+
+        <button onClick={onEdit}
+          className="w-6 h-6 rounded-full bg-[#2c2c2e] flex items-center justify-center active:scale-95">
+          <Pencil size={10} color="#8e8e93" />
+        </button>
 
         {!validated ? (
           <button onClick={onValidate} disabled={validating}
