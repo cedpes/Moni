@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import { fmt } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
-import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Settings, Home, Info } from 'lucide-react'
+import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Settings, Home, Info, ShoppingCart } from 'lucide-react'
 
 interface Props { workspaceId: string; userId: string; displayName: string | null }
 
@@ -30,23 +30,25 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const monthEnd = `${y}-${String(m).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`
     const txInMonth = transactions.filter((t: any) => t.date >= monthStart && t.date <= monthEnd)
 
-    // Réel : dépenses variables déjà réalisées (hors charges fixes, hors épargne)
+    // Réel : dépenses variables déjà réalisées (hors charges fixes, hors épargne, hors courses -> ligne à part)
     const variableReal = txInMonth
-      .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne')
+      .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses')
+      .reduce((s: number, t: any) => s + t.amount, 0)
+    const coursesReal = txInMonth
+      .filter((t: any) => t.envelope_slug === 'courses')
       .reduce((s: number, t: any) => s + t.amount, 0)
 
-    // Prévisionnel : dépenses planifiées pas encore validées (onglet Dépenses > Prévisionnel)
-    // + budget Courses du mois. C'est ce qui n'est "pas encore" dépensé mais déjà prévu,
-    // contrairement à l'enveloppe Plaisir qui n'est qu'un solde théorique (tout ce qui reste).
+    // Prévisionnel : dépenses planifiées pas encore validées (onglet Dépenses > Prévisionnel).
+    // Courses a sa propre ligne, alimentée par le budget mensuel Courses (page Courses).
     const coursesEnv = envelopes.find((e: any) => e.slug === 'courses')
     const coursesBudget = coursesEnv?.budget ?? 0
-    const totalPlannedPending = (planned ?? [])
+    const variablePrevu = (planned ?? [])
       .filter((p: any) => !p.is_validated)
       .reduce((s: number, p: any) => s + p.amount, 0)
-    const variablePrevu = totalPlannedPending + coursesBudget
 
     const variable = tab === 'reel' ? variableReal : variablePrevu
-    const restant = income - totalCharges - variable - epargne
+    const courses = tab === 'reel' ? coursesReal : coursesBudget
+    const restant = income - totalCharges - variable - courses - epargne
 
     const today = new Date()
     const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m
@@ -55,15 +57,16 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
 
     const fixePct = income > 0 ? (totalCharges / income) * 100 : 0
     const variablePct = income > 0 ? (variable / income) * 100 : 0
+    const coursesPct = income > 0 ? (courses / income) * 100 : 0
     const epargnePct = income > 0 ? (epargne / income) * 100 : 0
 
     return {
-      income, totalCharges, variable, epargne, restant, daysLeft, perDay,
-      fixePct, variablePct, epargnePct,
+      income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay,
+      fixePct, variablePct, coursesPct, epargnePct,
     }
   }, [month, envelopes, transactions, planned, fixedItems, monthKey, tab])
 
-  const { income, totalCharges, variable, epargne, restant, daysLeft, perDay, fixePct, variablePct, epargnePct } = metrics
+  const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay, fixePct, variablePct, coursesPct, epargnePct } = metrics
 
   return (
     <div className="min-h-screen bg-black pb-24">
@@ -109,9 +112,10 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
                 { label: 'Revenus', value: income, icon: Wallet, bg: '#1e3a8a', color: '#60a5fa' },
                 { label: 'Dépenses fixes', value: totalCharges, icon: CreditCard, bg: '#3b0764', color: '#a78bfa' },
                 { label: tab === 'reel' ? 'Dépenses variables' : 'Dépenses variables prévues', value: variable, icon: Mail, bg: '#312e81', color: '#818cf8' },
+                { label: 'Courses', value: courses, icon: ShoppingCart, bg: '#1e3a5f', color: '#60a5fa' },
                 { label: 'Épargne', value: epargne, icon: PiggyBank, bg: '#1e3a5f', color: '#38bdf8' },
               ].map(({ label, value, icon: Icon, bg, color }, i) => (
-                <div key={label} className={`flex items-center px-4 py-3.5 gap-3 ${i < 3 ? 'border-b border-white/5' : ''}`}>
+                <div key={label} className={`flex items-center px-4 py-3.5 gap-3 ${i < 4 ? 'border-b border-white/5' : ''}`}>
                   <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
                     <Icon size={16} color={color} />
                   </div>
@@ -147,7 +151,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
           <div className="bg-[#1c1c1e] rounded-[20px] p-4">
             <p className="text-[15px] font-semibold text-white mb-3">Part des dépenses par rapport aux revenus</p>
             <DonutChart
-              data={{ Fixe: fixePct, Variable: variablePct, Épargne: epargnePct }}
+              data={{ Fixe: fixePct, Variable: variablePct, Courses: coursesPct, Épargne: epargnePct }}
               total={100}
               centerLabel="Total"
             />
