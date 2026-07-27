@@ -55,18 +55,12 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const daysLeft = isCurrentMonth ? Math.max(1, daysInMonth - today.getDate() + 1) : daysInMonth
     const perDay = restant > 0 ? restant / daysLeft : 0
 
-    const fixePct = income > 0 ? (totalCharges / income) * 100 : 0
-    const variablePct = income > 0 ? (variable / income) * 100 : 0
-    const coursesPct = income > 0 ? (courses / income) * 100 : 0
-    const epargnePct = income > 0 ? (epargne / income) * 100 : 0
-
     return {
       income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay,
-      fixePct, variablePct, coursesPct, epargnePct,
     }
   }, [month, envelopes, transactions, planned, fixedItems, monthKey, tab])
 
-  const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay, fixePct, variablePct, coursesPct, epargnePct } = metrics
+  const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay } = metrics
 
   return (
     <div className="min-h-screen bg-black pb-24">
@@ -151,9 +145,9 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
           <div className="bg-[#1c1c1e] rounded-[20px] p-4">
             <p className="text-[15px] font-semibold text-white mb-3">Part des dépenses par rapport aux revenus</p>
             <DonutChart
-              data={{ Fixe: fixePct, Variable: variablePct, Courses: coursesPct, Épargne: epargnePct }}
-              total={100}
-              centerLabel="Total"
+              data={{ Fixe: totalCharges, Variable: variable, Courses: courses, Épargne: epargne }}
+              total={income}
+              centerLabel="Revenus"
             />
           </div>
         </div>
