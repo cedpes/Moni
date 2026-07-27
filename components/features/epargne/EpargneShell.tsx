@@ -15,7 +15,12 @@ interface Goal {
   color: string | null
   target_amount: number
   current_amount: number
+  target_date: string | null
   is_active: boolean
+}
+
+function fmtDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 const ICONS = ['💰', '🏖️', '🚨', '🏠', '🚗', '🎓', '🎁', '✈️']
@@ -35,6 +40,7 @@ export default function EpargneShell({ workspaceId }: Props) {
   const [fTarget, setFTarget] = useState('')
   const [fIcon, setFIcon] = useState('💰')
   const [fColor, setFColor] = useState('#fff8e6')
+  const [fTargetDate, setFTargetDate] = useState('')
 
   async function fetchData() {
     setLoading(true)
@@ -57,12 +63,13 @@ export default function EpargneShell({ workspaceId }: Props) {
   useEffect(() => { fetchData() }, [workspaceId])
 
   function openAdd() {
-    setFName(''); setFTarget(''); setFIcon('💰'); setFColor('#fff8e6')
+    setFName(''); setFTarget(''); setFIcon('💰'); setFColor('#fff8e6'); setFTargetDate('')
     setEditItem(null); setShowModal(true)
   }
 
   function openEdit(g: Goal) {
     setFName(g.name); setFTarget(String(g.target_amount)); setFIcon(g.icon); setFColor(g.color ?? '#fff8e6')
+    setFTargetDate(g.target_date ? g.target_date.slice(0, 10) : '')
     setEditItem(g); setShowModal(true)
   }
 
@@ -73,11 +80,12 @@ export default function EpargneShell({ workspaceId }: Props) {
     if (editItem) {
       await pb.collection('savings_goals').update(editItem.id, {
         name: fName.trim(), target_amount: parseFloat(fTarget), icon: fIcon, color: fColor,
+        target_date: fTargetDate || null,
       })
     } else {
       await pb.collection('savings_goals').create({
         workspace_id: workspaceId, name: fName.trim(), target_amount: parseFloat(fTarget),
-        current_amount: 0, icon: fIcon, color: fColor, is_active: true,
+        current_amount: 0, icon: fIcon, color: fColor, target_date: fTargetDate || null, is_active: true,
       })
     }
     setSaving(false); setShowModal(false); fetchData()
@@ -143,6 +151,7 @@ export default function EpargneShell({ workspaceId }: Props) {
             <div className="space-y-3">
               {goals.map(g => {
                 const pct = g.target_amount > 0 ? Math.min(100, Math.round(g.current_amount / g.target_amount * 100)) : 0
+                const overdue = g.target_date && pct < 100 && new Date(g.target_date) < new Date(new Date().toDateString())
                 return (
                   <div key={g.id} className="bg-[#1c1c1e] rounded-[16px] p-4">
                     <div className="flex items-center gap-3 mb-3">
@@ -152,6 +161,11 @@ export default function EpargneShell({ workspaceId }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="text-[15px] font-semibold text-white">{g.name}</p>
                         <p className="text-[12px] text-[#8e8e93]">Objectif: {fmt(g.target_amount)} · Total épargné: {fmt(g.current_amount)}</p>
+                        {g.target_date && (
+                          <p className={`text-[12px] mt-0.5 ${overdue ? 'text-[#f87171]' : 'text-[#8e8e93]'}`}>
+                            {overdue ? 'Échéance dépassée · ' : 'Échéance : '}{fmtDate(g.target_date)}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button onClick={() => openEdit(g)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
@@ -210,6 +224,12 @@ export default function EpargneShell({ workspaceId }: Props) {
                 <input type="number" step="0.01" min="0"
                   className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
                   placeholder="0" value={fTarget} onChange={e => setFTarget(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Date de fin (optionnel)</label>
+                <input type="date"
+                  className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  value={fTargetDate} onChange={e => setFTargetDate(e.target.value)} />
               </div>
               <div>
                 <label className="text-[13px] text-[#8e8e93] block mb-1.5">Icône</label>
