@@ -55,16 +55,20 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const daysLeft = isCurrentMonth ? Math.max(1, daysInMonth - today.getDate() + 1) : daysInMonth
     const perDay = restant > 0 ? restant / daysLeft : 0
 
-    // Répartition par catégorie (hors charges fixes et épargne, qui ont déjà leur propre ligne).
-    // Réel : les transactions du mois. Prévisionnel : les dépenses planifiées pas encore validées.
+    // Répartition par catégorie : vue complète du budget. Fixe, Courses et Épargne sont
+    // ajoutés tels quels (même valeur que les lignes au-dessus), et le reste des dépenses
+    // "variables" (plaisir) est détaillé catégorie par catégorie.
     const catSource = tab === 'reel'
-      ? txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne')
+      ? txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses')
       : (planned ?? []).filter((p: any) => !p.is_validated)
     const categoryData: Record<string, number> = {}
     catSource.forEach((item: any) => {
-      const name = item.categories?.name ?? (item.envelope_slug === 'courses' ? 'Courses' : 'Sans catégorie')
+      const name = item.categories?.name ?? 'Sans catégorie'
       categoryData[name] = (categoryData[name] ?? 0) + item.amount
     })
+    if (totalCharges > 0) categoryData['Fixe'] = (categoryData['Fixe'] ?? 0) + totalCharges
+    if (courses > 0) categoryData['Courses'] = (categoryData['Courses'] ?? 0) + courses
+    if (epargne > 0) categoryData['Épargne'] = (categoryData['Épargne'] ?? 0) + epargne
     const categoryTotal = Object.values(categoryData).reduce((s, v) => s + v, 0)
 
     return {
