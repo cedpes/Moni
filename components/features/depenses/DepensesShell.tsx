@@ -4,9 +4,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt } from '@/lib/utils'
+import { fmt, getWeeksOfMonth, fixedItemAmountForWeek } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
-import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info } from 'lucide-react'
+import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info, CalendarRange } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Props { workspaceId: string; userId: string; categories: any[] }
@@ -48,7 +48,7 @@ type Tab = 'courante' | 'fixe' | 'previsionnel'
 export default function DepensesShell({ workspaceId, userId, categories }: Props) {
   const router = useRouter()
   const { monthKey } = useMonth()
-  const { month, envelopes, transactions, planned, loading: monthLoading, refetch } = useMonthData(monthKey, workspaceId)
+  const { month, envelopes, transactions, planned, fixedItems, loading: monthLoading, refetch } = useMonthData(monthKey, workspaceId)
   const [tab, setTab] = useState<Tab>('courante')
 
   return (
@@ -79,7 +79,7 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 
       {tab === 'courante' && (
         <CouranteTab workspaceId={workspaceId} userId={userId} monthKey={monthKey}
-          month={month} envelopes={envelopes} planned={planned} transactions={transactions} categories={categories}
+          month={month} envelopes={envelopes} planned={planned} transactions={transactions} fixedItems={fixedItems} categories={categories}
           loading={monthLoading} refetch={refetch} />
       )}
       {tab === 'fixe' && (
@@ -87,7 +87,7 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
       )}
       {tab === 'previsionnel' && (
         <PrevisionnelTab workspaceId={workspaceId} userId={userId} monthKey={monthKey}
-          month={month} envelopes={envelopes} planned={planned} categories={categories}
+          month={month} envelopes={envelopes} planned={planned} fixedItems={fixedItems} categories={categories}
           loading={monthLoading} refetch={refetch} />
       )}
     </div>
@@ -97,9 +97,9 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 // ─────────────────────────────────────────────────────────
 // Onglet Courante : dépenses du quotidien (pas sur le calendrier)
 // ─────────────────────────────────────────────────────────
-function CouranteTab({ workspaceId, userId, month, envelopes, planned, transactions, categories, loading, refetch }: {
+function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned, transactions, fixedItems, categories, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
-  month: any; envelopes: any[]; planned: any[]; transactions: any[]; categories: any[]; loading: boolean; refetch: () => void
+  month: any; envelopes: any[]; planned: any[]; transactions: any[]; fixedItems: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -108,6 +108,7 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
   const [fAmount, setFAmount] = useState('')
   const [fDate, setFDate] = useState(new Date().toISOString().slice(0, 10))
   const [fCatId, setFCatId] = useState('')
+  const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
 
   // Toutes les dépenses courantes = transactions hors charges fixes
   const courantes = useMemo(() => transactions
@@ -115,6 +116,22 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
     .sort((a: any, b: any) => b.date.localeCompare(a.date)), [transactions])
 
   const total = courantes.reduce((s: number, t: any) => s + t.amount, 0)
+
+  // Vue hebdo : regroupe les dépenses réelles par semaine (via leur date), avec le revenu
+  // reçu cette semaine-là (utile pour Artemis qui reçoit son argent chaque mercredi).
+  const weeklyGroups = useMemo(() => {
+    const weeks = getWeeksOfMonth(monthKey)
+    const incomeItems = (fixedItems ?? []).filter((f: any) => f.type === 'income')
+    return weeks.map(w => {
+      const weekTx = courantes.filter((t: any) => {
+        const day = parseInt((t.date ?? '').split('-')[2], 10)
+        return day >= w.startDay && day <= w.endDay
+      })
+      const weekTotal = weekTx.reduce((s: number, t: any) => s + t.amount, 0)
+      const weekIncome = incomeItems.reduce((s: number, f: any) => s + fixedItemAmountForWeek(f, monthKey, w), 0)
+      return { ...w, transactions: weekTx, total: weekTotal, income: weekIncome, restant: weekIncome - weekTotal }
+    })
+  }, [courantes, fixedItems, monthKey])
 
   // Rappel : ce qu'il reste une fois le prévisionnel du mois retiré du revenu
   // (mêmes chiffres que l'onglet Budget > Prévisionnel), pour garder un œil dessus
@@ -179,9 +196,20 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
             </div>
           </div>
 
-          <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">
-            {courantes.length} dépense{courantes.length > 1 ? 's' : ''}
-          </p>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)]">
+              {courantes.length} dépense{courantes.length > 1 ? 's' : ''}
+            </p>
+            <div className="flex bg-[var(--bg-surface)] rounded-full p-0.5 gap-0.5">
+              {(['mensuel', 'hebdomadaire'] as const).map(v => (
+                <button key={v} onClick={() => setViewMode(v)}
+                  className={`px-2.5 h-6 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1 ${viewMode === v ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
+                  {v === 'hebdomadaire' && <CalendarRange size={11} />}
+                  {v === 'mensuel' ? 'Mois' : 'Semaine'}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {courantes.length === 0 ? (
             <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-10 text-center">
@@ -189,27 +217,34 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
               <p className="text-[15px] font-medium text-[var(--text-primary)]">Aucune dépense courante</p>
               <p className="text-[13px] text-[var(--text-secondary)] mt-1">Ex : boulangerie, essence… Appuie sur + pour en ajouter une</p>
             </div>
-          ) : (
+          ) : viewMode === 'mensuel' ? (
             <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
-              {courantes.map((t: any, i: number) => {
-                const catName = t.categories?.name ?? 'Autre'
-                const icon = t.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
-                const bg = CAT_COLORS[catName] ?? 'var(--bg-surface-2)'
-                return (
-                  <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < courantes.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
-                    <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: bg }}>{icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</p>
-                      <p className="text-[12px] text-[var(--text-secondary)]">{catName} · {t.date}</p>
+              {courantes.map((t: any, i: number) => (
+                <TxRow key={t.id} t={t} isLast={i === courantes.length - 1}
+                  deleting={deleting === t.id} onDelete={() => deleteTransaction(t.id)} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {weeklyGroups.map(w => (
+                <div key={w.index} className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
+                  <div className="flex items-center justify-between px-4 py-3 bg-[var(--bg-surface-2)]">
+                    <p className="text-[13px] font-semibold text-[var(--text-primary)]">Semaine du {w.label}</p>
+                    <div className="text-right">
+                      <p className={`text-[13px] font-bold ${w.restant >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.restant)}</p>
+                      <p className="text-[10px] text-[var(--text-secondary)]">{fmt(w.total)} dépensé / {fmt(w.income)} reçu</p>
                     </div>
-                    <p className="text-[15px] font-semibold text-[#f87171] flex-shrink-0">−{fmt(t.amount)}</p>
-                    <button onClick={() => deleteTransaction(t.id)} disabled={deleting === t.id}
-                      className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
-                      {deleting === t.id ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
-                    </button>
                   </div>
-                )
-              })}
+                  {w.transactions.length === 0 ? (
+                    <p className="text-[12px] text-[var(--text-secondary)] px-4 py-3">Aucune dépense cette semaine</p>
+                  ) : (
+                    w.transactions.map((t: any, i: number) => (
+                      <TxRow key={t.id} t={t} isLast={i === w.transactions.length - 1}
+                        deleting={deleting === t.id} onDelete={() => deleteTransaction(t.id)} />
+                    ))
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -269,6 +304,26 @@ function CouranteTab({ workspaceId, userId, month, envelopes, planned, transacti
         </div>
       )}
     </>
+  )
+}
+
+function TxRow({ t, isLast, deleting, onDelete }: { t: any; isLast: boolean; deleting: boolean; onDelete: () => void }) {
+  const catName = t.categories?.name ?? 'Autre'
+  const icon = t.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
+  const bg = CAT_COLORS[catName] ?? 'var(--bg-surface-2)'
+  return (
+    <div className={`flex items-center px-4 py-3 gap-3 ${!isLast ? 'border-b border-[var(--border-subtle)]' : ''}`}>
+      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: bg }}>{icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</p>
+        <p className="text-[12px] text-[var(--text-secondary)]">{catName} · {t.date}</p>
+      </div>
+      <p className="text-[15px] font-semibold text-[#f87171] flex-shrink-0">−{fmt(t.amount)}</p>
+      <button onClick={onDelete} disabled={deleting}
+        className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
+        {deleting ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
+      </button>
+    </div>
   )
 }
 
@@ -485,9 +540,9 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
 // ─────────────────────────────────────────────────────────
 // Onglet Prévisionnel : dépenses planifiées → tap pour valider (devient Courante)
 // ─────────────────────────────────────────────────────────
-function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, planned, categories, loading, refetch }: {
+function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, planned, fixedItems, categories, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
-  month: any; envelopes: any[]; planned: any[]; categories: any[]; loading: boolean; refetch: () => void
+  month: any; envelopes: any[]; planned: any[]; fixedItems: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -498,10 +553,29 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
   const [fAmount, setFAmount] = useState('')
   const [fCatId, setFCatId] = useState('')
   const [fRecurring, setFRecurring] = useState(false)
+  const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
 
   const pending = planned.filter((p: any) => !p.is_validated)
   const validated = planned.filter((p: any) => p.is_validated)
   const totalPending = pending.reduce((s: number, p: any) => s + p.amount, 0)
+
+  // Vue hebdo : le prévisionnel n'a pas de date précise, donc réparti à parts égales entre
+  // les semaines ; revenus/charges fixes sont eux affectés à la semaine où ils tombent.
+  const weekly = useMemo(() => {
+    const weeks = getWeeksOfMonth(monthKey)
+    const incomeItems = (fixedItems ?? []).filter((f: any) => f.type === 'income')
+    const chargeItems = (fixedItems ?? []).filter((f: any) => f.type === 'charge')
+    const variablePerWeek = weeks.length > 0 ? totalPending / weeks.length : 0
+    let cumulative = 0
+    const rows = weeks.map(w => {
+      const income = incomeItems.reduce((s: number, f: any) => s + fixedItemAmountForWeek(f, monthKey, w), 0)
+      const charges = chargeItems.reduce((s: number, f: any) => s + fixedItemAmountForWeek(f, monthKey, w), 0)
+      const restant = income - charges - variablePerWeek
+      cumulative += restant
+      return { ...w, income, charges, variable: variablePerWeek, restant, cumulative }
+    })
+    return { rows, variablePerWeek }
+  }, [fixedItems, totalPending, monthKey])
 
   async function validateItem(item: any) {
     if (!month) return
@@ -624,49 +698,101 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
             </p>
           </div>
 
-          {planned.length === 0 && (
-            <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-3.5 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-[10px] bg-[#1e3a5f] flex items-center justify-center flex-shrink-0">
-                  <Copy size={16} color="#60a5fa" />
-                </div>
-                <p className="text-[13px] text-[var(--text-body)]">Copier les récurrents du mois précédent ?</p>
-              </div>
-              <button onClick={copyPrevMonth}
-                className="px-3 py-1.5 bg-[var(--bg-surface-2)] rounded-[10px] text-[13px] font-medium text-[var(--text-primary)] active:scale-95 whitespace-nowrap">
-                Copier
+          <div className="flex bg-[var(--bg-surface)] rounded-full p-0.5 gap-0.5 w-fit">
+            {(['mensuel', 'hebdomadaire'] as const).map(v => (
+              <button key={v} onClick={() => setViewMode(v)}
+                className={`px-2.5 h-6 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1 ${viewMode === v ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
+                {v === 'hebdomadaire' && <CalendarRange size={11} />}
+                {v === 'mensuel' ? 'Mois' : 'Semaine'}
               </button>
+            ))}
+          </div>
+
+          {viewMode === 'mensuel' ? (
+            <>
+              {planned.length === 0 && (
+                <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-3.5 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-[10px] bg-[#1e3a5f] flex items-center justify-center flex-shrink-0">
+                      <Copy size={16} color="#60a5fa" />
+                    </div>
+                    <p className="text-[13px] text-[var(--text-body)]">Copier les récurrents du mois précédent ?</p>
+                  </div>
+                  <button onClick={copyPrevMonth}
+                    className="px-3 py-1.5 bg-[var(--bg-surface-2)] rounded-[10px] text-[13px] font-medium text-[var(--text-primary)] active:scale-95 whitespace-nowrap">
+                    Copier
+                  </button>
+                </div>
+              )}
+
+              {pending.length > 0 && (
+                <>
+                  <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">À valider</p>
+                  <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
+                    {pending.map((p: any, i: number) => (
+                      <PlannedRow key={p.id} item={p} isLast={i === pending.length - 1}
+                        deleting={deleting === p.id} validating={validating === p.id}
+                        onDelete={() => deletePlanned(p.id)}
+                        onEdit={() => openEdit(p)}
+                        onValidate={() => validateItem(p)} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {validated.length > 0 && (
+                <>
+                  <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">Validés ✓</p>
+                  <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
+                    {validated.map((p: any, i: number) => (
+                      <PlannedRow key={p.id} item={p} isLast={i === validated.length - 1}
+                        deleting={deleting === p.id} validating={validating === p.id}
+                        onDelete={() => deletePlanned(p.id)}
+                        onEdit={() => openEdit(p)}
+                        onUnvalidate={() => unvalidateItem(p)} />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <div className="space-y-3">
+              <div className="bg-[var(--bg-surface)] rounded-[16px] px-4 py-3 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[10px] bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
+                  <Info size={15} color="var(--text-secondary)" />
+                </div>
+                <p className="text-[12px] text-[var(--text-body)] leading-relaxed">
+                  Le prévisionnel ({fmt(totalPending)}) est réparti à parts égales entre les semaines. Revenus et charges fixes sont affectés à leur semaine réelle.
+                </p>
+              </div>
+              {weekly.rows.map(w => (
+                <div key={w.index} className="bg-[var(--bg-surface)] rounded-[20px] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">Semaine du {w.label}</p>
+                    <p className={`text-[15px] font-bold ${w.restant >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.restant)}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[var(--text-secondary)]">Revenus</span>
+                      <span className="text-[var(--text-primary)] font-medium">{fmt(w.income)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[var(--text-secondary)]">Charges fixes</span>
+                      <span className="text-[var(--text-primary)] font-medium">{fmt(w.charges)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[13px]">
+                      <span className="text-[var(--text-secondary)]">Variable prévu (part)</span>
+                      <span className="text-[var(--text-primary)] font-medium">{fmt(w.variable)}</span>
+                    </div>
+                  </div>
+                  <div className="h-px bg-[var(--border-subtle)] my-2.5" />
+                  <div className="flex items-center justify-between text-[12px]">
+                    <span className="text-[var(--text-secondary)]">Cumul depuis le début du mois</span>
+                    <span className={`font-semibold ${w.cumulative >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.cumulative)}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-
-          {pending.length > 0 && (
-            <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">À valider</p>
-              <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
-                {pending.map((p: any, i: number) => (
-                  <PlannedRow key={p.id} item={p} isLast={i === pending.length - 1}
-                    deleting={deleting === p.id} validating={validating === p.id}
-                    onDelete={() => deletePlanned(p.id)}
-                    onEdit={() => openEdit(p)}
-                    onValidate={() => validateItem(p)} />
-                ))}
-              </div>
-            </>
-          )}
-
-          {validated.length > 0 && (
-            <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1">Validés ✓</p>
-              <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
-                {validated.map((p: any, i: number) => (
-                  <PlannedRow key={p.id} item={p} isLast={i === validated.length - 1}
-                    deleting={deleting === p.id} validating={validating === p.id}
-                    onDelete={() => deletePlanned(p.id)}
-                    onEdit={() => openEdit(p)}
-                    onUnvalidate={() => unvalidateItem(p)} />
-                ))}
-              </div>
-            </>
           )}
         </div>
       )}
