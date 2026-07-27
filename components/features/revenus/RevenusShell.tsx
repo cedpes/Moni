@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
+import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
 import { Plus, X, Loader2, Check, Pencil, Settings2 } from 'lucide-react'
 
-interface Props { workspaceId: string }
+interface Props { workspaceId: string; userId: string }
 
 interface Income {
   id: string
@@ -23,8 +24,9 @@ interface Income {
 const INCOME_ICONS = ['💵', '💼', '🏦', '💻', '🎨', '📊', '🏪', '💰']
 const COLORS = ['#fff3e0', '#f3f0ff', '#e8faf0', '#e8f4ff', '#fef0f5', '#fff8e6', '#f0f7ff', '#f5f5f7']
 
-export default function RevenusShell({ workspaceId }: Props) {
+export default function RevenusShell({ workspaceId, userId }: Props) {
   const { monthKey } = useMonth()
+  const { month, transactions, refetch: refetchMonth } = useMonthData(monthKey, workspaceId)
   const [items, setItems] = useState<Income[]>([])
   const [statuses, setStatuses] = useState<{ fixed_item_id: string; id?: string; is_done: boolean }[]>([])
   const [loading, setLoading] = useState(true)
@@ -38,6 +40,44 @@ export default function RevenusShell({ workspaceId }: Props) {
   const [fDay, setFDay] = useState('')
   const [fIcon, setFIcon] = useState('💵')
   const [fColor, setFColor] = useState('#e8faf0')
+
+  // Revenus variables : paiements reçus au fil de l'eau (ex: paie hebdo imprévisible),
+  // logués comme des transactions avec envelope_slug = 'revenu'.
+  const [showVarModal, setShowVarModal] = useState(false)
+  const [varSaving, setVarSaving] = useState(false)
+  const [varDeleting, setVarDeleting] = useState<string | null>(null)
+  const [vLabel, setVLabel] = useState('')
+  const [vAmount, setVAmount] = useState('')
+  const [vDate, setVDate] = useState(new Date().toISOString().slice(0, 10))
+
+  const variableEntries = transactions
+    .filter((t: any) => t.envelope_slug === 'revenu')
+    .sort((a: any, b: any) => b.date.localeCompare(a.date))
+  const variableTotal = variableEntries.reduce((s: number, t: any) => s + t.amount, 0)
+
+  function openAddVar() {
+    setVLabel(''); setVAmount(''); setVDate(new Date().toISOString().slice(0, 10)); setShowVarModal(true)
+  }
+
+  async function addVariableIncome() {
+    const amount = parseFloat(vAmount)
+    if (!vLabel.trim() || !amount || !month) return
+    setVarSaving(true)
+    const pb = createClient()
+    await pb.collection('transactions').create({
+      month_id: month.id, workspace_id: workspaceId,
+      envelope_slug: 'revenu', label: vLabel.trim(), amount,
+      date: vDate || new Date().toISOString().slice(0, 10), created_by: userId,
+    })
+    setVarSaving(false); setShowVarModal(false); refetchMonth()
+  }
+
+  async function deleteVariableIncome(id: string) {
+    setVarDeleting(id)
+    const pb = createClient()
+    await pb.collection('transactions').delete(id)
+    setVarDeleting(null); refetchMonth()
+  }
 
   async function fetchData() {
     setLoading(true)
@@ -123,10 +163,18 @@ export default function RevenusShell({ workspaceId }: Props) {
         <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[#8e8e93]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
+          <div className="bg-[#1c1c1e] rounded-[20px] p-5 flex items-center justify-between">
+            <div>
+              <p className="text-[13px] text-[#8e8e93] mb-1">Revenu total du mois</p>
+              <p className="text-[26px] font-bold text-[#34d399] tracking-tight">{fmt(month?.income ?? (total + variableTotal))}</p>
+            </div>
+            <p className="text-[12px] text-[#8e8e93] text-right">Fixes {fmt(total)}<br />Variables {fmt(variableTotal)}</p>
+          </div>
+
           <div className="bg-[#1c1c1e] rounded-[20px] p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-[13px] text-[#8e8e93] mb-1">Total</p>
+                <p className="text-[13px] text-[#8e8e93] mb-1">Revenus fixes</p>
                 <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
               </div>
               <button onClick={() => setShowPct(!showPct)}
@@ -139,7 +187,39 @@ export default function RevenusShell({ workspaceId }: Props) {
           </div>
 
           <div className="flex items-center justify-between px-1">
-            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Historique des revenus</p>
+            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Revenus variables (ce mois)</p>
+            <button onClick={openAddVar} className="w-7 h-7 rounded-full bg-[#1c1c1e] flex items-center justify-center">
+              <Plus size={13} color="#8e8e93" />
+            </button>
+          </div>
+
+          {variableEntries.length === 0 ? (
+            <div className="bg-[#1c1c1e] rounded-[20px] px-4 py-8 text-center">
+              <p className="text-[28px] mb-2">💶</p>
+              <p className="text-[14px] font-medium text-white">Aucun revenu variable ce mois</p>
+              <p className="text-[12px] text-[#8e8e93] mt-1">Ex : paie hebdo. Appuie sur + pour en ajouter un</p>
+            </div>
+          ) : (
+            <div className="bg-[#1c1c1e] rounded-[20px] overflow-hidden">
+              {variableEntries.map((t: any, i: number) => (
+                <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < variableEntries.length - 1 ? 'border-b border-white/5' : ''}`}>
+                  <div className="w-9 h-9 rounded-[10px] bg-[#0f3d2e] flex items-center justify-center text-[16px] flex-shrink-0">💶</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium text-white truncate">{t.label}</p>
+                    <p className="text-[12px] text-[#8e8e93]">{new Date(t.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</p>
+                  </div>
+                  <p className="text-[14px] font-semibold text-[#34d399] flex-shrink-0">+{fmt(t.amount)}</p>
+                  <button onClick={() => deleteVariableIncome(t.id)} disabled={varDeleting === t.id}
+                    className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center flex-shrink-0">
+                    {varDeleting === t.id ? <Loader2 size={11} className="animate-spin text-[#8e8e93]" /> : <X size={11} color="#8e8e93" />}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between px-1">
+            <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93]">Historique des revenus fixes</p>
             <button onClick={openAdd} className="w-7 h-7 rounded-full bg-[#1c1c1e] flex items-center justify-center">
               <Settings2 size={13} color="#8e8e93" />
             </button>
@@ -245,6 +325,47 @@ export default function RevenusShell({ workspaceId }: Props) {
                 className="w-full h-12 bg-[#3b82f6] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showVarModal && (
+        <div className="fixed inset-0 bg-black/60 z-[60] flex items-end justify-center"
+          onClick={e => { if (e.target === e.currentTarget) setShowVarModal(false) }}>
+          <div className="bg-[#1c1c1e] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
+            <div className="w-9 h-1 bg-[#3a3a3c] rounded-full mx-auto mb-5" />
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-[18px] font-bold text-white">Revenu variable reçu</h2>
+              <button onClick={() => setShowVarModal(false)} className="w-7 h-7 rounded-full bg-[#2c2c2e] flex items-center justify-center">
+                <X size={14} color="#8e8e93" />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[13px] text-[#8e8e93] block mb-1.5">Libellé</label>
+                <input className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                  placeholder="Ex : Paie Artemis" value={vLabel} onChange={e => setVLabel(e.target.value)} autoFocus />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Montant (€)</label>
+                  <input type="number" step="0.01" min="0"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    placeholder="0.00" value={vAmount} onChange={e => setVAmount(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-[13px] text-[#8e8e93] block mb-1.5">Date</label>
+                  <input type="date"
+                    className="w-full h-11 border border-white/10 rounded-[12px] px-3.5 text-[16px] bg-[#2c2c2e] text-white outline-none focus:border-[#3b82f6]"
+                    value={vDate} onChange={e => setVDate(e.target.value)} />
+                </div>
+              </div>
+              <button onClick={addVariableIncome} disabled={varSaving || !vLabel || !vAmount}
+                className="w-full h-12 bg-[#34d399] text-[#0f3d2e] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                {varSaving && <Loader2 size={16} className="animate-spin" />}
+                Ajouter
               </button>
             </div>
           </div>

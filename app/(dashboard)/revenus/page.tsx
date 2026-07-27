@@ -13,5 +13,5 @@ export default async function RevenusPage() {
   const workspaceId: string | null = memberships[0]?.workspace_id ?? null
   if (!workspaceId) redirect('/login')
 
-  return <RevenusShell workspaceId={workspaceId} />
+  return <RevenusShell workspaceId={workspaceId} userId={user.id} />
 }

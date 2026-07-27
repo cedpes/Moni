@@ -64,7 +64,11 @@ export function useMonthData(monthKey: string, workspaceId: string) {
 
       // Calculer le total des charges fixes depuis fixed_items
       const chargesTotal = (fixed ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + f.amount, 0)
-      const incomeTotal = (fixed ?? []).filter((f: any) => f.type === 'income').reduce((s: number, f: any) => s + f.amount, 0)
+      // Revenu = revenus fixes récurrents (fixed_items) + revenus variables logués au fil de l'eau
+      // (transactions avec envelope_slug = 'revenu', ex: paie hebdo imprévisible d'un des membres du foyer).
+      const fixedIncomeTotal = (fixed ?? []).filter((f: any) => f.type === 'income').reduce((s: number, f: any) => s + f.amount, 0)
+      const variableIncomeTotal = (txs ?? []).filter((t: any) => t.envelope_slug === 'revenu').reduce((s: number, t: any) => s + t.amount, 0)
+      const incomeTotal = fixedIncomeTotal + variableIncomeTotal
 
       // Rattraper les enveloppes système manquantes (ex: mois créés avant l'ajout d'une enveloppe comme "épargne")
       const DEFAULT_ENVELOPES = [

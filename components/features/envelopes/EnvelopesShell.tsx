@@ -119,7 +119,7 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
   }
 
   const income = month?.income ?? 0
-  const totalSpent = transactions.reduce((s: number, t: any) => s + t.amount, 0)
+  const totalSpent = transactions.filter((t: any) => t.envelope_slug !== 'revenu').reduce((s: number, t: any) => s + t.amount, 0)
   const totalBudget = envelopes.reduce((s: number, e: any) => s + e.budget, 0)
   const reste = totalBudget - totalSpent
 
