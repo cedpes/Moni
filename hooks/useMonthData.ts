@@ -66,8 +66,27 @@ export function useMonthData(monthKey: string, workspaceId: string) {
       const chargesTotal = (fixed ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + f.amount, 0)
       const incomeTotal = (fixed ?? []).filter((f: any) => f.type === 'income').reduce((s: number, f: any) => s + f.amount, 0)
 
+      // Rattraper les enveloppes système manquantes (ex: mois créés avant l'ajout d'une enveloppe comme "épargne")
+      const DEFAULT_ENVELOPES = [
+        { slug: 'charges', name: 'Charges fixes', icon: '🏠', position: 0 },
+        { slug: 'plaisir', name: 'Plaisir', icon: '✨', position: 1 },
+        { slug: 'epargne', name: 'Épargne', icon: '💰', position: 2 },
+        { slug: 'courses', name: 'Courses', icon: '🛒', position: 3 },
+      ]
+      let envList: any[] = envs ?? []
+      const missingEnvelopes = DEFAULT_ENVELOPES.filter(d => !envList.some((e: any) => e.slug === d.slug))
+      if (missingEnvelopes.length > 0) {
+        const created = await Promise.all(missingEnvelopes.map(d =>
+          pb.collection('envelopes').create({
+            month_id: m.id, slug: d.slug, name: d.name, icon: d.icon,
+            budget: 0, is_system: true, position: d.position,
+          })
+        ))
+        envList = [...envList, ...created].sort((a: any, b: any) => a.position - b.position)
+      }
+
       // Mettre à jour l'enveloppe charges fixes et le revenu du mois automatiquement
-      const chargesEnv: any = (envs ?? []).find((e: any) => e.slug === 'charges')
+      const chargesEnv: any = envList.find((e: any) => e.slug === 'charges')
       if (chargesEnv && chargesEnv.budget !== chargesTotal) {
         await pb.collection('envelopes').update(chargesEnv.id, { budget: chargesTotal })
         chargesEnv.budget = chargesTotal
@@ -79,8 +98,31 @@ export function useMonthData(monthKey: string, workspaceId: string) {
         m = { ...m, income: incomeTotal }
       }
 
+      // Synchroniser l'enveloppe "courses" avec le budget prévisionnel défini sur la page Courses
+      // (source de vérité = month.courses_budget, réglé via l'icône réglages de la page Courses).
+      // Le "restant" de l'enveloppe se base ensuite sur les vraies transactions (passages).
+      const coursesEnv: any = envList.find((e: any) => e.slug === 'courses')
+      const coursesBudget = m.courses_budget ?? 0
+      if (coursesEnv && coursesEnv.budget !== coursesBudget) {
+        await pb.collection('envelopes').update(coursesEnv.id, { budget: coursesBudget })
+        coursesEnv.budget = coursesBudget
+      }
+
+      // L'épargne reste un montant défini manuellement (objectif d'épargne du mois) ;
+      // elle est déduite du revenu au même titre que les charges et les courses.
+      const epargneEnv: any = envList.find((e: any) => e.slug === 'epargne')
+      const epargneBudget = epargneEnv?.budget ?? 0
+
+      // Plaisir = ce qu'il reste une fois charges fixes, épargne et courses retirés du revenu
+      const plaisirEnv: any = envList.find((e: any) => e.slug === 'plaisir')
+      const plaisirAuto = Math.max(0, incomeTotal - chargesTotal - epargneBudget - coursesBudget)
+      if (plaisirEnv && plaisirEnv.budget !== plaisirAuto) {
+        await pb.collection('envelopes').update(plaisirEnv.id, { budget: plaisirAuto })
+        plaisirEnv.budget = plaisirAuto
+      }
+
       setMonth(m)
-      setEnvelopes(envs ?? [])
+      setEnvelopes(envList)
       setTransactions((txs ?? []).map(withCategoryAlias))
       setPlanned((pln ?? []).map(withCategoryAlias))
       setFixedItems(fixed ?? [])

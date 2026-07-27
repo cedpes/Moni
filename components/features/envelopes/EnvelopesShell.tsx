@@ -160,7 +160,7 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-[15px] font-semibold text-white">{env.name}</p>
-                        {(isCharges || isPlaisir) && <span className="text-[10px] font-medium bg-[#2c2c2e] text-[#8e8e93] px-1.5 py-0.5 rounded-full">Auto</span>}
+                        {(isCharges || isPlaisir || isCourses) && <span className="text-[10px] font-medium bg-[#2c2c2e] text-[#8e8e93] px-1.5 py-0.5 rounded-full">Auto</span>}
                       </div>
                       <p className="text-[13px] text-[#60a5fa] mt-1">• Montant : {fmt(displayBudget)}</p>
                       <p className={`text-[13px] mt-0.5 ${remain < 0 ? 'text-[#f87171]' : 'text-[#f87171]'}`}>• Restant: {fmt(remain)}</p>
