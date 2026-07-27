@@ -3,7 +3,7 @@
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
@@ -36,6 +36,25 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
   const [fIcon, setFIcon] = useState('📦')
   const [fColor, setFColor] = useState('#f5f5f7')
   const [fDueDay, setFDueDay] = useState('')
+  const [activeGoal, setActiveGoal] = useState<any>(null)
+
+  // Objectif d'épargne actif (page Épargne) : les montants mis de côté chaque mois
+  // dans l'enveloppe "Épargne" s'y ajoutent, et y restent tant que le projet n'est
+  // pas terminé/supprimé sur la page Épargne.
+  const fetchActiveGoal = useCallback(async () => {
+    const pb = createClient()
+    try {
+      const goals = await pb.collection('savings_goals').getFullList({
+        filter: `workspace_id="${workspaceId}" && is_active=true`,
+        sort: '-created',
+      })
+      setActiveGoal(goals?.[0] ?? null)
+    } catch {
+      setActiveGoal(null)
+    }
+  }, [workspaceId])
+
+  useEffect(() => { fetchActiveGoal() }, [fetchActiveGoal])
 
   function spentFor(slug: string) {
     return transactions.filter((t: any) => t.envelope_slug === slug).reduce((s: number, t: any) => s + t.amount, 0)
@@ -54,6 +73,7 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
 
   const editingEnv = editingId ? envelopes.find((e: any) => e.id === editingId) : null
   const isEditingCourses = editingEnv?.slug === 'courses'
+  const isEditingEpargne = editingEnv?.slug === 'epargne'
 
   async function saveEnvelope() {
     if (!fBudget || !month) return
@@ -66,10 +86,22 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
       // l'enveloppe se resynchronise automatiquement au prochain chargement.
       await pb.collection('months').update(month.id, { courses_budget: parseFloat(fBudget) })
     } else if (editingId) {
+      const newBudget = parseFloat(fBudget)
       await pb.collection('envelopes').update(editingId, {
-        name: fName.trim(), budget: parseFloat(fBudget),
+        name: fName.trim(), budget: newBudget,
         icon: fIcon, color: fColor, due_day: fDueDay ? parseInt(fDueDay) : null,
       })
+      if (isEditingEpargne && activeGoal) {
+        // Seule la différence par rapport au montant précédemment déclaré ce mois-ci
+        // est ajoutée à l'objectif, pour ne pas compter deux fois en cas de modification.
+        const delta = newBudget - (editingEnv?.budget ?? 0)
+        if (delta !== 0) {
+          await pb.collection('savings_goals').update(activeGoal.id, {
+            current_amount: Math.max(0, (activeGoal.current_amount ?? 0) + delta),
+          })
+          await fetchActiveGoal()
+        }
+      }
     } else {
       await pb.collection('envelopes').create({
         month_id: month.id, slug: fName.trim().toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
@@ -150,6 +182,7 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
               const isPlaisir = env.slug === 'plaisir'
               const isCharges = env.slug === 'charges'
               const isCourses = env.slug === 'courses'
+              const isEpargne = env.slug === 'epargne'
 
               const epargne = envelopes.find((e: any) => e.slug === 'epargne')?.budget ?? 0
               const courses = envelopes.find((e: any) => e.slug === 'courses')?.budget ?? 0
@@ -160,7 +193,8 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
               const borderColor = ENV_BORDER[env.slug] ?? '#3a3a3c'
 
               return (
-                <button key={env.id} onClick={() => isCourses && router.push('/courses')}
+                <button key={env.id}
+                  onClick={() => { if (isCourses) router.push('/courses'); if (isEpargne) router.push('/epargne') }}
                   className="w-full text-left bg-[#1c1c1e] rounded-[16px] p-4 border"
                   style={{ borderColor }}>
                   <div className="flex items-center gap-3">
@@ -173,9 +207,14 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                       </div>
                       <p className="text-[13px] text-[#60a5fa] mt-1">• Montant : {fmt(displayBudget)}</p>
                       <p className={`text-[13px] mt-0.5 ${remain < 0 ? 'text-[#f87171]' : 'text-[#f87171]'}`}>• Restant: {fmt(remain)}</p>
+                      {isEpargne && (
+                        <p className="text-[12px] text-[#34d399] mt-0.5">
+                          {activeGoal ? `🎯 ${activeGoal.name} : ${fmt(activeGoal.current_amount ?? 0)} / ${fmt(activeGoal.target_amount ?? 0)}` : 'Aucun objectif actif — vas sur Épargne pour en créer un'}
+                        </p>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      {isCourses && <ChevronRight size={16} color="#8e8e93" />}
+                      {(isCourses || isEpargne) && <ChevronRight size={16} color="#8e8e93" />}
                       {!isPlaisir && !isCharges && (
                         <div className="flex gap-1.5">
                           <span onClick={(e) => { e.stopPropagation(); openEdit(env) }}
@@ -240,6 +279,13 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
                         placeholder="0" value={fBudget} onChange={e => setFBudget(e.target.value)} />
                     </div>
                   </div>
+                  {isEditingEpargne && (
+                    <p className="text-[12px] text-[#8e8e93] -mt-1">
+                      {activeGoal
+                        ? `La différence avec le montant actuel sera ajoutée à l'objectif "${activeGoal.name}" (${fmt(activeGoal.current_amount ?? 0)} / ${fmt(activeGoal.target_amount ?? 0)}). Le total reste d'un mois à l'autre jusqu'à ce que tu supprimes le projet dans l'onglet Épargne.`
+                        : `Aucun objectif actif — crée-en un dans l'onglet Épargne pour que ce montant s'accumule mois après mois.`}
+                    </p>
+                  )}
                   <div>
                     <label className="text-[13px] text-[#8e8e93] block mb-1.5">Jour d&apos;échéance (optionnel)</label>
                     <input type="number" min="1" max="31"
