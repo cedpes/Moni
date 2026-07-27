@@ -6,7 +6,7 @@ import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
-import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy } from 'lucide-react'
+import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Props { workspaceId: string; userId: string; categories: any[] }
@@ -79,7 +79,7 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 
       {tab === 'courante' && (
         <CouranteTab workspaceId={workspaceId} userId={userId} monthKey={monthKey}
-          month={month} envelopes={envelopes} transactions={transactions} categories={categories}
+          month={month} envelopes={envelopes} planned={planned} transactions={transactions} categories={categories}
           loading={monthLoading} refetch={refetch} />
       )}
       {tab === 'fixe' && (
@@ -97,9 +97,9 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 // ─────────────────────────────────────────────────────────
 // Onglet Courante : dépenses du quotidien (pas sur le calendrier)
 // ─────────────────────────────────────────────────────────
-function CouranteTab({ workspaceId, userId, month, transactions, categories, loading, refetch }: {
+function CouranteTab({ workspaceId, userId, month, envelopes, planned, transactions, categories, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
-  month: any; envelopes: any[]; transactions: any[]; categories: any[]; loading: boolean; refetch: () => void
+  month: any; envelopes: any[]; planned: any[]; transactions: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -115,6 +115,20 @@ function CouranteTab({ workspaceId, userId, month, transactions, categories, loa
     .sort((a: any, b: any) => b.date.localeCompare(a.date)), [transactions])
 
   const total = courantes.reduce((s: number, t: any) => s + t.amount, 0)
+
+  // Rappel : ce qu'il reste une fois le prévisionnel du mois retiré du revenu
+  // (mêmes chiffres que l'onglet Budget > Prévisionnel), pour garder un œil dessus
+  // avant d'ajouter une dépense courante.
+  const restantPrevisionnel = useMemo(() => {
+    const income = month?.income ?? 0
+    const chargesBudget = envelopes?.find((e: any) => e.slug === 'charges')?.budget ?? 0
+    const coursesBudget = envelopes?.find((e: any) => e.slug === 'courses')?.budget ?? 0
+    const epargneBudget = envelopes?.find((e: any) => e.slug === 'epargne')?.budget ?? 0
+    const totalPlannedPending = (planned ?? [])
+      .filter((p: any) => !p.is_validated)
+      .reduce((s: number, p: any) => s + p.amount, 0)
+    return income - chargesBudget - totalPlannedPending - coursesBudget - epargneBudget
+  }, [month, envelopes, planned])
 
   function openAdd() {
     setFLabel(''); setFAmount(''); setFDate(new Date().toISOString().slice(0, 10)); setFCatId('')
@@ -153,6 +167,16 @@ function CouranteTab({ workspaceId, userId, month, transactions, categories, loa
           <div className="bg-[#1c1c1e] rounded-[20px] p-5">
             <p className="text-[13px] text-[#8e8e93] mb-1">Dépensé ce mois (courant)</p>
             <p className="text-[26px] font-bold text-white tracking-tight">{fmt(total)}</p>
+          </div>
+
+          <div className="bg-[#1c1c1e] rounded-[16px] px-4 py-3.5 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-[10px] bg-[#2c2c2e] flex items-center justify-center flex-shrink-0">
+              <Info size={15} color="#8e8e93" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] text-[#8e8e93]">Restant prévisionnel du mois</p>
+              <p className={`text-[16px] font-bold ${restantPrevisionnel >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(restantPrevisionnel)}</p>
+            </div>
           </div>
 
           <p className="text-[12px] font-semibold tracking-widest uppercase text-[#8e8e93] px-1">
