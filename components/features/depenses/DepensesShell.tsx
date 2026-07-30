@@ -134,19 +134,28 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
     })
   }, [courantes, fixedItems, monthKey])
 
-  // Rappel : ce qu'il reste une fois le prévisionnel du mois retiré du revenu
-  // (mêmes chiffres que l'onglet Budget > Prévisionnel), pour garder un œil dessus
-  // avant d'ajouter une dépense courante.
+  // Rappel : ce qu'il reste à dépenser ce mois-ci, une fois tout ce qui est "engagé"
+  // retiré du revenu : charges fixes, courses, épargne, TOUT le prévisionnel (validé ou
+  // pas — un prévisionnel validé est de l'argent dépensé, pas de l'argent libéré), et les
+  // dépenses courantes "spontanées" (ajoutées directement, hors plan prévisionnel).
+  // Important : ce nombre ne doit jamais augmenter quand on dépense ou qu'on valide un
+  // prévisionnel, seulement quand on le supprime ou baisse son montant.
   const restantPrevisionnel = useMemo(() => {
     const income = month?.income ?? 0
     const chargesBudget = envelopes?.find((e: any) => e.slug === 'charges')?.budget ?? 0
     const coursesBudget = envelopes?.find((e: any) => e.slug === 'courses')?.budget ?? 0
     const epargneBudget = envelopes?.find((e: any) => e.slug === 'epargne')?.budget ?? 0
-    const totalPlannedPending = (planned ?? [])
-      .filter((p: any) => !p.is_validated)
-      .reduce((s: number, p: any) => s + p.amount, 0)
-    return income - chargesBudget - totalPlannedPending - coursesBudget - epargneBudget
-  }, [month, envelopes, planned])
+    const totalPlannedAll = (planned ?? []).reduce((s: number, p: any) => s + p.amount, 0)
+    const validatedTxIds = new Set(
+      (planned ?? []).filter((p: any) => p.is_validated && p.validated_transaction_id).map((p: any) => p.validated_transaction_id)
+    )
+    // Dépenses courantes non liées à un prévisionnel déjà comptabilisé ci-dessus (hors courses,
+    // déjà couvertes par coursesBudget) : de l'argent dépensé sans avoir été planifié.
+    const spontaneousReal = courantes
+      .filter((t: any) => t.envelope_slug !== 'courses' && !validatedTxIds.has(t.id))
+      .reduce((s: number, t: any) => s + t.amount, 0)
+    return income - chargesBudget - coursesBudget - epargneBudget - totalPlannedAll - spontaneousReal
+  }, [month, envelopes, planned, courantes])
 
   function openAdd() {
     setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setFCatId(''); setDateError(false)
