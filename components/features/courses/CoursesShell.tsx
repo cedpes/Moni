@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt } from '@/lib/utils'
+import { fmt, defaultDateForMonth, isDateInMonth } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import { Plus, X, Loader2, Settings2 } from 'lucide-react'
 import { useMonthData } from '@/hooks/useMonthData'
@@ -35,7 +35,8 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
   const [deleting, setDeleting] = useState<string | null>(null)
   const [fLabel, setFLabel] = useState('')
   const [fAmount, setFAmount] = useState('')
-  const [fDate, setFDate] = useState(new Date().toISOString().slice(0, 10))
+  const [fDate, setFDate] = useState(() => defaultDateForMonth(monthKey))
+  const [dateError, setDateError] = useState(false)
   const [tmpMonthly, setTmpMonthly] = useState('')
 
   const monthlyBudget = month?.courses_budget ?? 320
@@ -57,12 +58,15 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
   async function addTransaction() {
     const amount = parseFloat(fAmount)
     if (!fLabel.trim() || !amount || !month) return
+    const date = fDate || defaultDateForMonth(monthKey)
+    if (!isDateInMonth(date, monthKey)) { setDateError(true); return }
+    setDateError(false)
     setSaving(true)
     const pb = createClient()
     await pb.collection('transactions').create({
       month_id: month.id, workspace_id: workspaceId,
       envelope_slug: 'courses', label: fLabel.trim(), amount,
-      date: fDate || new Date().toISOString().slice(0, 10), created_by: userId,
+      date, created_by: userId,
     })
     setSaving(false); setShowModal(false); refetch()
   }
@@ -96,7 +100,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
               className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform">
               <Settings2 size={15} />
             </button>
-            <button onClick={() => { setFLabel(''); setFAmount(''); setFDate(new Date().toISOString().slice(0, 10)); setShowModal(true) }}
+            <button onClick={() => { setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setDateError(false); setShowModal(true) }}
               className="w-8 h-8 rounded-full bg-[#3b82f6] flex items-center justify-center active:scale-95 transition-transform">
               <Plus size={16} color="white" />
             </button>
@@ -154,7 +158,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
         </div>
       )}
 
-      <button onClick={() => { setFLabel(''); setFAmount(''); setFDate(new Date().toISOString().slice(0, 10)); setShowModal(true) }}
+      <button onClick={() => { setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setDateError(false); setShowModal(true) }}
         className="fixed right-4 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
         <Plus size={24} color="white" />
@@ -189,9 +193,12 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Date</label>
                   <input type="date"
                     className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
-                    value={fDate} onChange={e => setFDate(e.target.value)} />
+                    value={fDate} onChange={e => { setFDate(e.target.value); setDateError(false) }} />
                 </div>
               </div>
+              {dateError && (
+                <p className="text-[12px] text-[#f87171] px-1">La date doit être dans le mois affiché ({monthKey}), sinon le passage ne compte pas dans son budget.</p>
+              )}
               <button onClick={addTransaction} disabled={saving || !fLabel || !fAmount}
                 className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}Ajouter

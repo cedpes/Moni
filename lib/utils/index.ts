@@ -41,6 +41,27 @@ export function nextMonthKey(monthKey: string): string {
   return getMonthKey(next)
 }
 
+// Date par défaut à proposer pour une nouvelle dépense/transaction sur un mois donné :
+// aujourd'hui si on est sur le mois réel en cours, sinon le jour du mois "aujourd'hui"
+// mais recalé dans le mois affiché (ex : le 30 si le mois affiché a moins de jours -> dernier jour).
+// Évite le bug où une dépense ajoutée en étant sur un autre mois que le mois réel se voit
+// attribuer la date du jour réel (donc un autre mois que celui affiché), ce qui la fait
+// disparaître du calcul du mois réellement concerné.
+export function defaultDateForMonth(monthKey: string): string {
+  const today = new Date()
+  const realMonthKey = getMonthKey(today)
+  if (monthKey === realMonthKey) return today.toISOString().slice(0, 10)
+  const [year, month] = monthKey.split('-').map(Number)
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const day = Math.min(today.getDate(), daysInMonth)
+  return `${monthKey}-${String(day).padStart(2, '0')}`
+}
+
+// Vérifie qu'une date (YYYY-MM-DD) tombe bien dans le mois affiché (YYYY-MM)
+export function isDateInMonth(date: string, monthKey: string): boolean {
+  return typeof date === 'string' && date.slice(0, 7) === monthKey
+}
+
 export function barColor(pct: number): string {
   if (pct < 70) return 'bg-green-500'
   if (pct < 100) return 'bg-orange-400'

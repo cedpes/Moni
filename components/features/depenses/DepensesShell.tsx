@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, getWeeksOfMonth, fixedItemAmountForWeek } from '@/lib/utils'
+import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, defaultDateForMonth, isDateInMonth } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info, CalendarRange } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -106,8 +106,9 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
   const [deleting, setDeleting] = useState<string | null>(null)
   const [fLabel, setFLabel] = useState('')
   const [fAmount, setFAmount] = useState('')
-  const [fDate, setFDate] = useState(new Date().toISOString().slice(0, 10))
+  const [fDate, setFDate] = useState(() => defaultDateForMonth(monthKey))
   const [fCatId, setFCatId] = useState('')
+  const [dateError, setDateError] = useState(false)
   const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
 
   // Toutes les dépenses courantes = transactions hors charges fixes
@@ -148,13 +149,16 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
   }, [month, envelopes, planned])
 
   function openAdd() {
-    setFLabel(''); setFAmount(''); setFDate(new Date().toISOString().slice(0, 10)); setFCatId('')
+    setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setFCatId(''); setDateError(false)
     setShowModal(true)
   }
 
   async function addTransaction() {
     const amount = parseFloat(fAmount)
     if (!fLabel.trim() || !amount || !month) return
+    const date = fDate || defaultDateForMonth(monthKey)
+    if (!isDateInMonth(date, monthKey)) { setDateError(true); return }
+    setDateError(false)
     setSaving(true)
     const pb = createClient()
     const cat = categories.find((c: any) => c.id === fCatId)
@@ -163,7 +167,7 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
       month_id: month.id, workspace_id: workspaceId,
       envelope_slug: envelopeSlug, category_id: fCatId || null,
       label: fLabel.trim(), amount,
-      date: fDate || new Date().toISOString().slice(0, 10), created_by: userId,
+      date, created_by: userId,
     })
     setSaving(false); setShowModal(false); refetch()
   }
@@ -284,9 +288,12 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Date</label>
                   <input type="date"
                     className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
-                    value={fDate} onChange={e => setFDate(e.target.value)} />
+                    value={fDate} onChange={e => { setFDate(e.target.value); setDateError(false) }} />
                 </div>
               </div>
+              {dateError && (
+                <p className="text-[12px] text-[#f87171] px-1">La date doit être dans le mois affiché ({monthKey}), sinon la dépense ne compte pas dans son budget.</p>
+              )}
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Catégorie</label>
                 <select className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none appearance-none"
@@ -588,7 +595,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
       label: item.label,
       amount: item.amount,
       category_id: item.category_id ?? null,
-      date: new Date().toISOString().slice(0, 10),
+      date: defaultDateForMonth(monthKey),
       created_by: userId,
     })
     await pb.collection('planned_expenses').update(item.id, {
