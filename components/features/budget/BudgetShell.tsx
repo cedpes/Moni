@@ -39,13 +39,20 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
       .filter((t: any) => t.envelope_slug === 'courses')
       .reduce((s: number, t: any) => s + t.amount, 0)
 
-    // Prévisionnel : dépenses planifiées pas encore validées (onglet Dépenses > Prévisionnel).
+    // Prévisionnel : tout le prévisionnel planifié (validé ou pas — un prévisionnel validé
+    // est de l'argent dépensé, pas de l'argent libéré) + les dépenses courantes "spontanées"
+    // ajoutées à côté du plan (sinon elles ne comptent nulle part dans cette vue).
     // Courses a sa propre ligne, alimentée par le budget mensuel Courses (page Courses).
     const coursesEnv = envelopes.find((e: any) => e.slug === 'courses')
     const coursesBudget = coursesEnv?.budget ?? 0
-    const variablePrevu = (planned ?? [])
-      .filter((p: any) => !p.is_validated)
-      .reduce((s: number, p: any) => s + p.amount, 0)
+    const validatedTxIds = new Set(
+      (planned ?? []).filter((p: any) => p.is_validated && p.validated_transaction_id).map((p: any) => p.validated_transaction_id)
+    )
+    const totalPlannedAll = (planned ?? []).reduce((s: number, p: any) => s + p.amount, 0)
+    const spontaneousReal = txInMonth
+      .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses' && !validatedTxIds.has(t.id))
+      .reduce((s: number, t: any) => s + t.amount, 0)
+    const variablePrevu = totalPlannedAll + spontaneousReal
 
     const variable = tab === 'reel' ? variableReal : variablePrevu
     const courses = tab === 'reel' ? coursesReal : coursesBudget
@@ -61,7 +68,10 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     // "variables" (plaisir) est détaillé catégorie par catégorie.
     const catSource = tab === 'reel'
       ? txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses')
-      : (planned ?? []).filter((p: any) => !p.is_validated)
+      : [
+          ...(planned ?? []),
+          ...txInMonth.filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses' && !validatedTxIds.has(t.id)),
+        ]
     const categoryData: Record<string, number> = {}
     catSource.forEach((item: any) => {
       const name = item.categories?.name ?? 'Sans catégorie'
@@ -87,7 +97,14 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const weeks = getWeeksOfMonth(monthKey)
     const incomeItems = (fixedItems ?? []).filter((f: any) => f.type === 'income')
     const chargeItems = (fixedItems ?? []).filter((f: any) => f.type === 'charge')
-    const variablePrevuTotal = (planned ?? []).filter((p: any) => !p.is_validated).reduce((s: number, p: any) => s + p.amount, 0)
+    const validatedTxIds = new Set(
+      (planned ?? []).filter((p: any) => p.is_validated && p.validated_transaction_id).map((p: any) => p.validated_transaction_id)
+    )
+    const totalPlannedAll = (planned ?? []).reduce((s: number, p: any) => s + p.amount, 0)
+    const spontaneousReal = transactions
+      .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses' && !validatedTxIds.has(t.id))
+      .reduce((s: number, t: any) => s + t.amount, 0)
+    const variablePrevuTotal = totalPlannedAll + spontaneousReal
     const variablePerWeek = weeks.length > 0 ? variablePrevuTotal / weeks.length : 0
 
     let cumulative = 0
@@ -99,7 +116,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
       return { ...w, income: weekIncome, charges: weekCharges, variable: variablePerWeek, restant: weekRestant, cumulative }
     })
     return { rows, variablePrevuTotal }
-  }, [fixedItems, planned, monthKey])
+  }, [fixedItems, planned, transactions, monthKey])
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] pb-24">

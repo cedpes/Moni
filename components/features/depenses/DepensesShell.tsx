@@ -87,7 +87,7 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
       )}
       {tab === 'previsionnel' && (
         <PrevisionnelTab workspaceId={workspaceId} userId={userId} monthKey={monthKey}
-          month={month} envelopes={envelopes} planned={planned} fixedItems={fixedItems} categories={categories}
+          month={month} envelopes={envelopes} planned={planned} fixedItems={fixedItems} transactions={transactions} categories={categories}
           loading={monthLoading} refetch={refetch} />
       )}
     </div>
@@ -556,9 +556,9 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
 // ─────────────────────────────────────────────────────────
 // Onglet Prévisionnel : dépenses planifiées → tap pour valider (devient Courante)
 // ─────────────────────────────────────────────────────────
-function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, planned, fixedItems, categories, loading, refetch }: {
+function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, planned, fixedItems, transactions, categories, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
-  month: any; envelopes: any[]; planned: any[]; fixedItems: any[]; categories: any[]; loading: boolean; refetch: () => void
+  month: any; envelopes: any[]; planned: any[]; fixedItems: any[]; transactions: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
   const [showModal, setShowModal] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -575,13 +575,23 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
   const validated = planned.filter((p: any) => p.is_validated)
   const totalPending = pending.reduce((s: number, p: any) => s + p.amount, 0)
 
-  // Vue hebdo : le prévisionnel n'a pas de date précise, donc réparti à parts égales entre
-  // les semaines ; revenus/charges fixes sont eux affectés à la semaine où ils tombent.
+  // Vue hebdo : le prévisionnel (tout le planifié, validé ou pas, + les dépenses courantes
+  // spontanées hors plan) n'a pas de date précise, donc réparti à parts égales entre les
+  // semaines ; revenus/charges fixes sont eux affectés à la semaine où ils tombent.
+  const validatedTxIds = useMemo(() => new Set(
+    (planned ?? []).filter((p: any) => p.is_validated && p.validated_transaction_id).map((p: any) => p.validated_transaction_id)
+  ), [planned])
+  const totalPlannedAll = useMemo(() => (planned ?? []).reduce((s: number, p: any) => s + p.amount, 0), [planned])
+  const spontaneousReal = useMemo(() => (transactions ?? [])
+    .filter((t: any) => t.envelope_slug !== 'charges' && t.envelope_slug !== 'epargne' && t.envelope_slug !== 'courses' && !validatedTxIds.has(t.id))
+    .reduce((s: number, t: any) => s + t.amount, 0), [transactions, validatedTxIds])
+  const totalPrevisionnel = totalPlannedAll + spontaneousReal
+
   const weekly = useMemo(() => {
     const weeks = getWeeksOfMonth(monthKey)
     const incomeItems = (fixedItems ?? []).filter((f: any) => f.type === 'income')
     const chargeItems = (fixedItems ?? []).filter((f: any) => f.type === 'charge')
-    const variablePerWeek = weeks.length > 0 ? totalPending / weeks.length : 0
+    const variablePerWeek = weeks.length > 0 ? totalPrevisionnel / weeks.length : 0
     let cumulative = 0
     const rows = weeks.map(w => {
       const income = incomeItems.reduce((s: number, f: any) => s + fixedItemAmountForWeek(f, monthKey, w), 0)
@@ -591,7 +601,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
       return { ...w, income, charges, variable: variablePerWeek, restant, cumulative }
     })
     return { rows, variablePerWeek }
-  }, [fixedItems, totalPending, monthKey])
+  }, [fixedItems, totalPrevisionnel, monthKey])
 
   async function validateItem(item: any) {
     if (!month) return
@@ -778,7 +788,7 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
                   <Info size={15} color="var(--text-secondary)" />
                 </div>
                 <p className="text-[12px] text-[var(--text-body)] leading-relaxed">
-                  Le prévisionnel ({fmt(totalPending)}) est réparti à parts égales entre les semaines. Revenus et charges fixes sont affectés à leur semaine réelle.
+                  Le prévisionnel ({fmt(totalPrevisionnel)}, planifié + dépenses courantes hors plan) est réparti à parts égales entre les semaines. Revenus et charges fixes sont affectés à leur semaine réelle.
                 </p>
               </div>
               {weekly.rows.map(w => (
