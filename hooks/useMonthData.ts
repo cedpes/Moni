@@ -16,6 +16,7 @@ export function useMonthData(monthKey: string, workspaceId: string) {
   const [transactions, setTransactions] = useState<any[]>([])
   const [planned, setPlanned] = useState<any[]>([])
   const [fixedItems, setFixedItems] = useState<any[]>([])
+  const [fixedItemStatuses, setFixedItemStatuses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -55,11 +56,12 @@ export function useMonthData(monthKey: string, workspaceId: string) {
       if (!m) { setLoading(false); return }
 
       // Charger tout en parallèle
-      const [envs, txs, pln, fixed] = await Promise.all([
+      const [envs, txs, pln, fixed, statuses] = await Promise.all([
         pb.collection('envelopes').getFullList({ filter: `month_id="${m.id}"`, sort: 'position' }),
         pb.collection('transactions').getFullList({ filter: `month_id="${m.id}"`, sort: '-date', expand: 'category_id' }),
         pb.collection('planned_expenses').getFullList({ filter: `month_id="${m.id}"`, sort: 'position', expand: 'category_id' }),
         pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true` }),
+        pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
       ])
 
       // Calculer le total des charges/revenus fixes (les items hebdomadaires comptent 4 ou 5 fois selon le mois)
@@ -128,6 +130,7 @@ export function useMonthData(monthKey: string, workspaceId: string) {
       setTransactions((txs ?? []).map(withCategoryAlias))
       setPlanned((pln ?? []).map(withCategoryAlias))
       setFixedItems(fixed ?? [])
+      setFixedItemStatuses(statuses ?? [])
     } catch (err: any) {
       console.error('useMonthData fetchData error:', err)
       setError(err?.message ?? 'Erreur de chargement des données')
@@ -138,5 +141,5 @@ export function useMonthData(monthKey: string, workspaceId: string) {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  return { month, envelopes, transactions, planned, fixedItems, loading, error, refetch: fetchData }
+  return { month, envelopes, transactions, planned, fixedItems, fixedItemStatuses, loading, error, refetch: fetchData }
 }

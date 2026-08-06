@@ -14,7 +14,7 @@ interface Props { workspaceId: string; userId: string; displayName: string | nul
 export default function BudgetShell({ workspaceId, displayName }: Props) {
   const router = useRouter()
   const { monthKey, monthLabel } = useMonth()
-  const { month, envelopes, transactions, planned, fixedItems, loading } = useMonthData(monthKey, workspaceId)
+  const { month, envelopes, transactions, planned, fixedItems, fixedItemStatuses, loading } = useMonthData(monthKey, workspaceId)
   const [tab, setTab] = useState<'reel' | 'previsionnel'>('reel')
   const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
 
@@ -23,6 +23,14 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const chargesEnv = envelopes.find((e: any) => e.slug === 'charges')
     const epargneEnv = envelopes.find((e: any) => e.slug === 'epargne')
     const totalCharges = (fixedItems ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + f.amount, 0)
+    // Charges déjà payées ce mois-ci (cochées ✓ dans Dépenses > Fixe) — c'est ce qui a
+    // réellement quitté le compte en banque, contrairement à totalCharges qui est le budgété.
+    const doneChargeIds = new Set(
+      (fixedItemStatuses ?? []).filter((s: any) => s.is_done).map((s: any) => s.fixed_item_id)
+    )
+    const chargesValidated = (fixedItems ?? [])
+      .filter((f: any) => f.type === 'charge' && doneChargeIds.has(f.id))
+      .reduce((s: number, f: any) => s + f.amount, 0)
     const epargne = epargneEnv?.budget ?? 0
 
     const [y, m] = (month?.month_key ?? monthKey).split('-').map(Number)
@@ -56,7 +64,8 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
 
     const variable = tab === 'reel' ? variableReal : variablePrevu
     const courses = tab === 'reel' ? coursesReal : coursesBudget
-    const restant = income - totalCharges - variable - courses - epargne
+    const charges = tab === 'reel' ? chargesValidated : totalCharges
+    const restant = income - charges - variable - courses - epargne
 
     const today = new Date()
     const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m
@@ -77,18 +86,18 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
       const name = item.categories?.name ?? 'Sans catégorie'
       categoryData[name] = (categoryData[name] ?? 0) + item.amount
     })
-    if (totalCharges > 0) categoryData['Fixe'] = (categoryData['Fixe'] ?? 0) + totalCharges
+    if (charges > 0) categoryData['Fixe'] = (categoryData['Fixe'] ?? 0) + charges
     if (courses > 0) categoryData['Courses'] = (categoryData['Courses'] ?? 0) + courses
     if (epargne > 0) categoryData['Épargne'] = (categoryData['Épargne'] ?? 0) + epargne
     const categoryTotal = Object.values(categoryData).reduce((s, v) => s + v, 0)
 
     return {
-      income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay,
+      income, charges, totalCharges, variable, courses, epargne, restant, daysLeft, perDay,
       categoryData, categoryTotal,
     }
-  }, [month, envelopes, transactions, planned, fixedItems, monthKey, tab])
+  }, [month, envelopes, transactions, planned, fixedItems, fixedItemStatuses, monthKey, tab])
 
-  const { income, totalCharges, variable, courses, epargne, restant, daysLeft, perDay, categoryData, categoryTotal } = metrics
+  const { income, charges, variable, courses, epargne, restant, daysLeft, perDay, categoryData, categoryTotal } = metrics
 
   // Vue hebdomadaire : découpe le mois en semaines et affecte à chacune les revenus/charges
   // fixes qui tombent dedans (grâce au jour de prélèvement / jour de semaine des fixed_items).
@@ -211,7 +220,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
             <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
               {[
                 { label: 'Revenus', value: income, icon: Wallet, bg: '#1e3a8a', color: '#60a5fa' },
-                { label: 'Dépenses fixes', value: totalCharges, icon: CreditCard, bg: '#3b0764', color: '#a78bfa' },
+                { label: tab === 'reel' ? 'Dépenses fixes payées' : 'Dépenses fixes', value: charges, icon: CreditCard, bg: '#3b0764', color: '#a78bfa' },
                 { label: tab === 'reel' ? 'Dépenses variables' : 'Dépenses variables prévues', value: variable, icon: Mail, bg: '#312e81', color: '#818cf8' },
                 { label: 'Courses', value: courses, icon: ShoppingCart, bg: '#1e3a5f', color: '#60a5fa' },
                 { label: 'Épargne', value: epargne, icon: PiggyBank, bg: '#1e3a5f', color: '#38bdf8' },
@@ -252,7 +261,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
           <div className="bg-[var(--bg-surface)] rounded-[20px] p-4">
             <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-3">Part des dépenses par rapport aux revenus</p>
             <DonutChart
-              data={{ Fixe: totalCharges, Variable: variable, Courses: courses, Épargne: epargne }}
+              data={{ Fixe: charges, Variable: variable, Courses: courses, Épargne: epargne }}
               total={income}
               centerLabel="Revenus"
             />
