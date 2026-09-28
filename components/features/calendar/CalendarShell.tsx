@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt } from '@/lib/utils'
+import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
 import { Plus, X, Loader2, Check, Pencil } from 'lucide-react'
 
@@ -19,6 +20,9 @@ interface FixedItem {
   color: string | null
   is_active: boolean
   category: string
+  start_month?: string | null
+  end_month?: string | null
+  is_exceptional?: boolean
 }
 
 interface ItemStatus {
@@ -77,7 +81,7 @@ export default function CalendarShell({ workspaceId }: Props) {
         pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true`, sort: 'due_day' }),
         pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
       ])
-      setItems((fixedItems ?? []) as any)
+      setItems(filterFixedItemsForMonth((fixedItems ?? []) as any, monthKey))
       setStatuses((monthStatuses ?? []) as any)
     } catch (err: any) {
       if (err?.isAbort) return
@@ -154,7 +158,15 @@ export default function CalendarShell({ workspaceId }: Props) {
       category: fCategory,
       is_active: true,
     }
-    if (editItem) {
+    if (fType === 'income') {
+      // Revenus : historisés (un changement ne modifie pas les mois précédents)
+      const { is_active, ...incomePayload } = payload
+      await saveFixedItemVersioned(pb, {
+        editItem: editItem as VersionedFixedItem | null,
+        payload: { ...incomePayload, is_exceptional: !!editItem?.is_exceptional },
+        monthKey,
+      })
+    } else if (editItem) {
       await pb.collection('fixed_items').update(editItem.id, payload)
     } else {
       await pb.collection('fixed_items').create(payload)
@@ -164,7 +176,9 @@ export default function CalendarShell({ workspaceId }: Props) {
 
   async function deleteItem(id: string) {
     const pb = createClient()
-    await pb.collection('fixed_items').update(id, { is_active: false })
+    const item = items.find(i => i.id === id)
+    if (item?.type === 'income') await removeFixedItemFromMonth(pb, item as VersionedFixedItem, monthKey)
+    else await pb.collection('fixed_items').update(id, { is_active: false })
     fetchData()
   }
 

@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences } from '@/lib/utils'
+import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences, getMonthLabel } from '@/lib/utils'
+import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
 import { Plus, X, Loader2, Check, Pencil, Settings2 } from 'lucide-react'
@@ -18,7 +19,13 @@ interface Income {
   icon: string
   color: string | null
   is_active: boolean
+  type: 'income'
+  start_month?: string | null
+  end_month?: string | null
+  is_exceptional?: boolean
 }
+
+type Frequency = 'monthly' | 'weekly' | 'exceptional'
 
 const INCOME_ICONS = ['💵', '💼', '🏦', '💻', '🎨', '📊', '🏪', '💰']
 const COLORS = ['#fff3e0', '#f3f0ff', '#e8faf0', '#e8f4ff', '#fef0f5', '#fff8e6', '#f0f7ff', '#f5f5f7']
@@ -35,7 +42,7 @@ export default function RevenusShell({ workspaceId }: Props) {
 
   const [fName, setFName] = useState('')
   const [fAmount, setFAmount] = useState('')
-  const [fFrequency, setFFrequency] = useState<'monthly' | 'weekly'>('monthly')
+  const [fFrequency, setFFrequency] = useState<Frequency>('monthly')
   const [fDay, setFDay] = useState('') // jour du mois (1-31), si mensuel
   const [fWeekday, setFWeekday] = useState(3) // jour de la semaine ISO (1=Lundi...7=Dimanche), si hebdomadaire, défaut Mercredi
   const [fIcon, setFIcon] = useState('💵')
@@ -49,7 +56,8 @@ export default function RevenusShell({ workspaceId }: Props) {
         pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && type="income" && is_active=true`, sort: 'due_day' }),
         pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
       ])
-      setItems((incomes ?? []) as any)
+      // Seuls les revenus valables pour le mois affiché (historique préservé)
+      setItems(filterFixedItemsForMonth((incomes ?? []) as any, monthKey))
       setStatuses((monthStatuses ?? []) as any)
     } catch (err: any) {
       // Ignore les annulations automatiques du SDK PocketBase (changement rapide de mois) ;
@@ -90,7 +98,9 @@ export default function RevenusShell({ workspaceId }: Props) {
 
   function openEdit(item: Income) {
     setFName(item.name); setFAmount(String(item.amount))
-    if (isWeeklyDueDay(item.due_day)) {
+    if (item.is_exceptional) {
+      setFFrequency('exceptional'); setFDay(String(item.due_day))
+    } else if (isWeeklyDueDay(item.due_day)) {
       setFFrequency('weekly'); setFWeekday(isoWeekdayFromDueDay(item.due_day)); setFDay('')
     } else {
       setFFrequency('monthly'); setFDay(String(item.due_day))
@@ -101,25 +111,35 @@ export default function RevenusShell({ workspaceId }: Props) {
 
   async function saveItem() {
     if (!fName.trim() || !fAmount) return
-    if (fFrequency === 'monthly' && !fDay) return
+    if (fFrequency !== 'weekly' && !fDay) return
     setSaving(true)
-    const pb = createClient()
-    const payload = {
-      workspace_id: workspaceId, type: 'income', name: fName.trim(),
-      amount: parseFloat(fAmount),
-      due_day: fFrequency === 'weekly' ? weeklyDueDay(fWeekday) : parseInt(fDay),
-      icon: fIcon, color: fColor, category: 'Revenu', is_active: true,
+    try {
+      const pb = createClient()
+      const payload = {
+        workspace_id: workspaceId, type: 'income' as const, name: fName.trim(),
+        amount: parseFloat(fAmount),
+        due_day: fFrequency === 'weekly' ? weeklyDueDay(fWeekday) : parseInt(fDay),
+        icon: fIcon, color: fColor, category: 'Revenu',
+        is_exceptional: fFrequency === 'exceptional',
+      }
+      await saveFixedItemVersioned(pb, { editItem: editItem as VersionedFixedItem | null, payload, monthKey })
+      setShowModal(false)
+    } catch (err) {
+      console.error('RevenusShell saveItem error:', err)
+    } finally {
+      setSaving(false); fetchData()
     }
-    if (editItem) await pb.collection('fixed_items').update(editItem.id, payload)
-    else await pb.collection('fixed_items').create(payload)
-    setSaving(false); setShowModal(false); fetchData()
   }
 
-  async function deleteItem(id: string) {
+  async function deleteItem(item: Income) {
     const pb = createClient()
-    await pb.collection('fixed_items').update(id, { is_active: false })
+    await removeFixedItemFromMonth(pb, item as VersionedFixedItem, monthKey)
     fetchData()
   }
+
+  const recurringItems = items.filter(i => !i.is_exceptional)
+  const exceptionalItems = items.filter(i => i.is_exceptional)
+  const isEditingRecurring = !!editItem && !editItem.is_exceptional && fFrequency !== 'exceptional'
 
   // Montant effectif de chaque revenu pour le mois affiché (un item hebdo compte 4 ou 5 fois selon le mois)
   const total = items.reduce((s, i) => s + fixedItemMonthlyAmount(i, monthKey), 0)
@@ -127,6 +147,41 @@ export default function RevenusShell({ workspaceId }: Props) {
   items.forEach(i => { data[i.name] = (data[i.name] ?? 0) + fixedItemMonthlyAmount(i, monthKey) })
   const pctData: Record<string, number> = {}
   Object.entries(data).forEach(([k, v]) => { pctData[k] = total > 0 ? Math.round((v / total) * 100) : 0 })
+
+  function renderItem(item: Income) {
+    const done = isDone(item.id)
+    const weekly = !item.is_exceptional && isWeeklyDueDay(item.due_day)
+    const subLabel = item.is_exceptional
+      ? `${fmt(item.amount)} · exceptionnel, le ${item.due_day}`
+      : weekly
+        ? `${fmt(item.amount)} · tous les ${WEEKDAY_NAMES[isoWeekdayFromDueDay(item.due_day) - 1]}s (${countWeekdayOccurrences(monthKey, isoWeekdayFromDueDay(item.due_day))}× ce mois)`
+        : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
+    return (
+      <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
+        <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? 'var(--bg-surface-2)' }}>
+          {item.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-semibold text-[var(--text-primary)]">{item.name}</p>
+          <p className="text-[12px] text-[var(--text-secondary)]">{subLabel}</p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+            <Pencil size={11} color="var(--text-secondary)" />
+          </button>
+          <button onClick={() => deleteItem(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+            <X size={11} color="var(--text-secondary)" />
+          </button>
+          {!weekly && (
+            <button onClick={() => toggleDone(item)}
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
+              <Check size={14} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[var(--bg-app)] pb-24">
@@ -170,40 +225,17 @@ export default function RevenusShell({ workspaceId }: Props) {
               <p className="text-[13px] text-[var(--text-secondary)] mt-1">Appuie sur + pour en ajouter un</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {items.map(item => {
-                const done = isDone(item.id)
-                const weekly = isWeeklyDueDay(item.due_day)
-                const subLabel = weekly
-                  ? `${fmt(item.amount)} · tous les ${WEEKDAY_NAMES[isoWeekdayFromDueDay(item.due_day) - 1]}s (${countWeekdayOccurrences(monthKey, isoWeekdayFromDueDay(item.due_day))}× ce mois)`
-                  : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
-                return (
-                  <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? 'var(--bg-surface-2)' }}>
-                      {item.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-semibold text-[var(--text-primary)]">{item.name}</p>
-                      <p className="text-[12px] text-[var(--text-secondary)]">{subLabel}</p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                        <Pencil size={11} color="var(--text-secondary)" />
-                      </button>
-                      <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                        <X size={11} color="var(--text-secondary)" />
-                      </button>
-                      {!weekly && (
-                        <button onClick={() => toggleDone(item)}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
-                          <Check size={14} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <>
+              {recurringItems.length > 0 && (
+                <div className="space-y-2">{recurringItems.map(renderItem)}</div>
+              )}
+              {exceptionalItems.length > 0 && (
+                <>
+                  <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-2">Revenus exceptionnels</p>
+                  <div className="space-y-2">{exceptionalItems.map(renderItem)}</div>
+                </>
+              )}
+            </>
           )}
         </div>
       )}
@@ -243,7 +275,7 @@ export default function RevenusShell({ workspaceId }: Props) {
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Fréquence</label>
                 <div className="flex bg-[var(--bg-surface-2)] rounded-[12px] p-1 gap-1">
-                  {([['monthly', 'Mensuel'], ['weekly', 'Hebdomadaire']] as const).map(([val, label]) => (
+                  {([['monthly', 'Mensuel'], ['weekly', 'Hebdo'], ['exceptional', 'Exceptionnel']] as const).map(([val, label]) => (
                     <button key={val} onClick={() => setFFrequency(val)}
                       className={`flex-1 h-9 rounded-[9px] text-[13px] font-semibold transition-all ${fFrequency === val ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
                       {label}
@@ -252,12 +284,17 @@ export default function RevenusShell({ workspaceId }: Props) {
                 </div>
               </div>
 
-              {fFrequency === 'monthly' ? (
+              {fFrequency !== 'weekly' ? (
                 <div>
-                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour de réception</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">
+                    {fFrequency === 'exceptional' ? `Jour de réception (${getMonthLabel(monthKey)})` : 'Jour de réception'}
+                  </label>
                   <input type="number" min="1" max="31"
                     className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="Ex : 28" value={fDay} onChange={e => setFDay(e.target.value)} />
+                  {fFrequency === 'exceptional' && (
+                    <p className="text-[12px] text-[var(--text-secondary)] mt-2">Compté uniquement sur {getMonthLabel(monthKey)}, jamais reporté sur les autres mois.</p>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -294,7 +331,12 @@ export default function RevenusShell({ workspaceId }: Props) {
                   ))}
                 </div>
               </div>
-              <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency === 'monthly' && !fDay)}
+              {isEditingRecurring && (
+                <p className="text-[12px] text-[var(--text-secondary)] bg-[var(--bg-surface-2)] rounded-[10px] px-3 py-2">
+                  Un changement de montant ou de date s&apos;applique à partir de {getMonthLabel(monthKey)}. Les mois précédents gardent l&apos;ancien montant.
+                </p>
+              )}
+              <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency !== 'weekly' && !fDay)}
                 className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}

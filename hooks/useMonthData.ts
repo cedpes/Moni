@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
 import { getMonthLabel, fixedItemMonthlyAmount } from '@/lib/utils'
+import { filterFixedItemsForMonth } from '@/lib/utils/fixedItemsVersioning'
 
 // Ajoute un alias `.categories` (compatible avec l'ancien embed Supabase `*, categories(name, icon)`)
 // à partir de la relation PocketBase `expand.category_id`.
@@ -56,13 +57,16 @@ export function useMonthData(monthKey: string, workspaceId: string) {
       if (!m) { setLoading(false); return }
 
       // Charger tout en parallèle
-      const [envs, txs, pln, fixed, statuses] = await Promise.all([
+      const [envs, txs, pln, allFixed, statuses] = await Promise.all([
         pb.collection('envelopes').getFullList({ filter: `month_id="${m.id}"`, sort: 'position' }),
         pb.collection('transactions').getFullList({ filter: `month_id="${m.id}"`, sort: '-date', expand: 'category_id' }),
         pb.collection('planned_expenses').getFullList({ filter: `month_id="${m.id}"`, sort: 'position', expand: 'category_id' }),
         pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true` }),
         pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
       ])
+
+      // Ne garder que les items valables pour CE mois (historique des revenus + revenus exceptionnels)
+      const fixed = filterFixedItemsForMonth((allFixed ?? []) as any[], monthKey)
 
       // Calculer le total des charges/revenus fixes (les items hebdomadaires comptent 4 ou 5 fois selon le mois)
       const chargesTotal = (fixed ?? []).filter((f: any) => f.type === 'charge')
