@@ -51,6 +51,17 @@ export async function closeMonth(pb: PocketBase, month: any, workspaceId: string
   })
 }
 
+// Mois (record) encore ouvert pour cette clé, ou null s'il n'existe pas / est déjà clôturé
+export async function getOpenMonth(pb: PocketBase, workspaceId: string, monthKey: string) {
+  const list = await pb.collection('months').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` })
+  const month = list[0] ?? null
+  return month && !isMonthClosed(month) ? month : null
+}
+
+export function isCurrentOrPastMonth(monthKey: string): boolean {
+  return monthKey <= getMonthKey()
+}
+
 export async function reopenMonth(pb: PocketBase, month: any) {
   return pb.collection('months').update(month.id, { is_closed: false })
 }

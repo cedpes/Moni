@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences, getMonthLabel } from '@/lib/utils'
-import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, parseAnnualMonths, formatAnnualMonths, addMonths, isFixedItemActiveInMonth, MONTH_NAMES_SHORT, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
+import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, prevMonthKey, parseAnnualMonths, formatAnnualMonths, addMonths, isFixedItemActiveInMonth, MONTH_NAMES_SHORT, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
-import { useMonthLock } from '@/lib/utils/monthLock'
+import { useMonthLock, getOpenMonth, closeMonth } from '@/lib/utils/monthLock'
 import DonutChart from '@/components/ui/DonutChart'
 import { Plus, X, Loader2, Check, Pencil, Settings2 } from 'lucide-react'
 
@@ -60,6 +60,9 @@ export default function RevenusShell({ workspaceId }: Props) {
   const [fTargetMonth, setFTargetMonth] = useState('') // exceptionnel : mois de versement
   const [fAnnualMonths, setFAnnualMonths] = useState<number[]>([]) // annuel : mois de versement chaque année
   const [savedNote, setSavedNote] = useState('')
+  // Proposition de clôturer le mois précédent une fois le salaire reçu
+  const [closePrompt, setClosePrompt] = useState<{ monthKey: string; month: any } | null>(null)
+  const [closingPrev, setClosingPrev] = useState(false)
 
   async function fetchData() {
     setLoading(true)
@@ -103,6 +106,32 @@ export default function RevenusShell({ workspaceId }: Props) {
       if (exists) return prev.map(s => s.fixed_item_id === item.id ? { ...s, is_done: !current } : s)
       return [...prev, { fixed_item_id: item.id, is_done: !current }]
     })
+
+    // Revenu mensuel coché "reçu" : si le mois précédent est encore ouvert, on propose de le clôturer
+    const isMonthlyIncome = !item.is_exceptional && parseAnnualMonths(item.annual_months).length === 0 && !isWeeklyDueDay(item.due_day)
+    if (!current && isMonthlyIncome) {
+      const prevKey = prevMonthKey(monthKey)
+      try {
+        const prevMonth = await getOpenMonth(pb, workspaceId, prevKey)
+        if (prevMonth) setClosePrompt({ monthKey: prevKey, month: prevMonth })
+      } catch (err) {
+        console.error('RevenusShell prev month check error:', err)
+      }
+    }
+  }
+
+  async function confirmClosePrev() {
+    if (!closePrompt) return
+    setClosingPrev(true)
+    try {
+      await closeMonth(createClient(), closePrompt.month, workspaceId, closePrompt.monthKey)
+      setSavedNote(`${getMonthLabel(closePrompt.monthKey)} clôturé`)
+      setClosePrompt(null)
+    } catch (err) {
+      console.error('RevenusShell close prev month error:', err)
+    } finally {
+      setClosingPrev(false)
+    }
   }
 
   function openAdd() {
@@ -286,6 +315,24 @@ export default function RevenusShell({ workspaceId }: Props) {
                 </>
               )}
             </>
+          )}
+
+          {closePrompt && (
+            <div className="bg-[var(--bg-surface)] border border-[#34c759]/40 rounded-[16px] px-4 py-3.5">
+              <p className="text-[14px] font-semibold text-[var(--text-primary)]">💵 Salaire reçu</p>
+              <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">Clôturer {getMonthLabel(closePrompt.monthKey)} ? Ses revenus et charges seront figés.</p>
+              <div className="flex gap-2 mt-3">
+                <button onClick={confirmClosePrev} disabled={closingPrev}
+                  className="flex-1 h-9 rounded-[10px] bg-[#34c759] text-white text-[13px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  {closingPrev && <Loader2 size={13} className="animate-spin" />}
+                  Clôturer {getMonthLabel(closePrompt.monthKey).split(' ')[0]}
+                </button>
+                <button onClick={() => setClosePrompt(null)}
+                  className="flex-1 h-9 rounded-[10px] bg-[var(--bg-surface-2)] text-[var(--text-secondary)] text-[13px] font-semibold">
+                  Plus tard
+                </button>
+              </div>
+            </div>
           )}
 
           {savedNote && (
