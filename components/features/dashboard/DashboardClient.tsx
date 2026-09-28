@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, barColorHex } from '@/lib/utils'
+import { fmt, barColorHex, fixedItemMonthlyAmount } from '@/lib/utils'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import MonthPicker from '@/components/ui/MonthPicker'
@@ -65,7 +65,7 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
     const pct = plaisir > 0 ? Math.max(0, Math.min(100, Math.round(reste / plaisir * 100))) : 0
 
     // Solde final
-    const totalCharges = (fixedItems ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + f.amount, 0)
+    const totalCharges = (fixedItems ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + fixedItemMonthlyAmount(f, monthKey), 0)
     const totalIncome = income
     const [y, m] = (month?.month_key ?? '2026-01').split('-').map(Number)
     const monthStart = `${y}-${String(m).padStart(2,'0')}-01`
@@ -79,11 +79,11 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
     const chargesByCategory: Record<string, number> = {}
     ;(fixedItems ?? []).filter((f: any) => f.type === 'charge').forEach((f: any) => {
       const cat = f.category ?? 'Autre'
-      chargesByCategory[cat] = (chargesByCategory[cat] ?? 0) + f.amount
+      chargesByCategory[cat] = (chargesByCategory[cat] ?? 0) + fixedItemMonthlyAmount(f, monthKey)
     })
 
     return { plaisir, totalPlanned, totalReal, reste, pct, soldeFinal, totalCharges, totalIncome, chargesByCategory, coursesBudgetPrevu, depenseCourses }
-  }, [envelopes, planned, transactions, fixedItems, month])
+  }, [envelopes, planned, transactions, fixedItems, month, monthKey])
 
   const { plaisir, totalPlanned, totalReal, reste, pct, soldeFinal, totalCharges, totalIncome, chargesByCategory, coursesBudgetPrevu, depenseCourses } = metrics
   const circ = 2 * Math.PI * 60

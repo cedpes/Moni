@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import { useRouter } from 'next/navigation'
-import { fmt, getWeeksOfMonth, fixedItemAmountForWeek } from '@/lib/utils'
+import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, fixedItemMonthlyAmount } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
 import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Settings, Home, Info, ShoppingCart, CalendarRange } from 'lucide-react'
@@ -22,7 +22,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const income = month?.income ?? 0
     const chargesEnv = envelopes.find((e: any) => e.slug === 'charges')
     const epargneEnv = envelopes.find((e: any) => e.slug === 'epargne')
-    const totalCharges = (fixedItems ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + f.amount, 0)
+    const totalCharges = (fixedItems ?? []).filter((f: any) => f.type === 'charge').reduce((s: number, f: any) => s + fixedItemMonthlyAmount(f, monthKey), 0)
     // Charges déjà payées ce mois-ci (cochées ✓ dans Dépenses > Fixe) — c'est ce qui a
     // réellement quitté le compte en banque, contrairement à totalCharges qui est le budgété.
     const doneChargeIds = new Set(
@@ -30,7 +30,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     )
     const chargesValidated = (fixedItems ?? [])
       .filter((f: any) => f.type === 'charge' && doneChargeIds.has(f.id))
-      .reduce((s: number, f: any) => s + f.amount, 0)
+      .reduce((s: number, f: any) => s + fixedItemMonthlyAmount(f, monthKey), 0)
     const epargne = epargneEnv?.budget ?? 0
 
     const [y, m] = (month?.month_key ?? monthKey).split('-').map(Number)

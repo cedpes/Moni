@@ -6,6 +6,8 @@ import { createClient } from '@/lib/pocketbase/client'
 import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences, getMonthLabel } from '@/lib/utils'
 import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
+import MonthLockBanner from '@/components/ui/MonthLockBanner'
+import { useMonthLock } from '@/lib/utils/monthLock'
 import DonutChart from '@/components/ui/DonutChart'
 import { Plus, X, Loader2, Check, Pencil, Settings2 } from 'lucide-react'
 
@@ -32,7 +34,13 @@ const COLORS = ['#fff3e0', '#f3f0ff', '#e8faf0', '#e8f4ff', '#fef0f5', '#fff8e6'
 
 export default function RevenusShell({ workspaceId }: Props) {
   const { monthKey } = useMonth()
-  const [items, setItems] = useState<Income[]>([])
+  const lock = useMonthLock(workspaceId, monthKey)
+  const [liveItems, setItems] = useState<Income[]>([])
+  // Mois clôturé : copie figée ; sinon, versions valables ce mois-ci
+  const items: Income[] = lock.closed
+    ? (lock.month.fixed_snapshot as Income[]).filter((i: any) => i.type === 'income')
+    : liveItems
+  const readOnly = lock.closed
   const [statuses, setStatuses] = useState<{ fixed_item_id: string; id?: string; is_done: boolean }[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -166,12 +174,14 @@ export default function RevenusShell({ workspaceId }: Props) {
           <p className="text-[12px] text-[var(--text-secondary)]">{subLabel}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
+          {!readOnly && (<>
           <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
             <Pencil size={11} color="var(--text-secondary)" />
           </button>
           <button onClick={() => deleteItem(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
             <X size={11} color="var(--text-secondary)" />
           </button>
+          </>)}
           {!weekly && (
             <button onClick={() => toggleDone(item)}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
@@ -196,6 +206,7 @@ export default function RevenusShell({ workspaceId }: Props) {
         <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
+          <MonthLockBanner monthKey={monthKey} month={lock.month} closed={lock.closed} onClose={lock.close} onReopen={lock.reopen} />
           <div className="bg-[var(--bg-surface)] rounded-[20px] p-5">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -213,9 +224,11 @@ export default function RevenusShell({ workspaceId }: Props) {
 
           <div className="flex items-center justify-between px-1">
             <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)]">Historique des revenus</p>
-            <button onClick={openAdd} className="w-7 h-7 rounded-full bg-[var(--bg-surface)] flex items-center justify-center">
-              <Settings2 size={13} color="var(--text-secondary)" />
-            </button>
+            {!readOnly && (
+              <button onClick={openAdd} className="w-7 h-7 rounded-full bg-[var(--bg-surface)] flex items-center justify-center">
+                <Settings2 size={13} color="var(--text-secondary)" />
+              </button>
+            )}
           </div>
 
           {items.length === 0 ? (
@@ -240,11 +253,11 @@ export default function RevenusShell({ workspaceId }: Props) {
         </div>
       )}
 
-      <button onClick={openAdd}
+      {!readOnly && <button onClick={openAdd}
         className="fixed right-4 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
         <Plus size={24} color="white" />
-      </button>
+      </button>}
 
       {showModal && (
         <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
 import { getMonthLabel, fixedItemMonthlyAmount } from '@/lib/utils'
-import { filterFixedItemsForMonth } from '@/lib/utils/fixedItemsVersioning'
+import { fixedItemsForMonth, shouldAutoClose, toSnapshot } from '@/lib/utils/monthLock'
 
 // Ajoute un alias `.categories` (compatible avec l'ancien embed Supabase `*, categories(name, icon)`)
 // à partir de la relation PocketBase `expand.category_id`.
@@ -65,8 +65,16 @@ export function useMonthData(monthKey: string, workspaceId: string) {
         pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
       ])
 
-      // Ne garder que les items valables pour CE mois (historique des revenus + revenus exceptionnels)
-      const fixed = filterFixedItemsForMonth((allFixed ?? []) as any[], monthKey)
+      // Items fixes du mois : copie figée si le mois est clôturé, sinon les versions valables ce mois-ci
+      const fixed = fixedItemsForMonth(m, (allFixed ?? []) as any[], monthKey)
+
+      // Auto-clôture d'un mois passé ouvert pour la première fois : on fige ses revenus/charges
+      if (shouldAutoClose(m, monthKey)) {
+        const snapshot = toSnapshot(fixed)
+        m = await pb.collection('months').update(m.id, {
+          is_closed: true, closed_at: new Date().toISOString(), fixed_snapshot: snapshot,
+        })
+      }
 
       // Calculer le total des charges/revenus fixes (les items hebdomadaires comptent 4 ou 5 fois selon le mois)
       const chargesTotal = (fixed ?? []).filter((f: any) => f.type === 'charge')

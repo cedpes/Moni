@@ -6,6 +6,8 @@ import { createClient } from '@/lib/pocketbase/client'
 import { fmt } from '@/lib/utils'
 import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
+import MonthLockBanner from '@/components/ui/MonthLockBanner'
+import { useMonthLock } from '@/lib/utils/monthLock'
 import { Plus, X, Loader2, Check, Pencil } from 'lucide-react'
 
 interface Props { workspaceId: string }
@@ -48,7 +50,11 @@ const COLORS = ['#fff3e0','#f3f0ff','#e8faf0','#e8f4ff','#fef0f5','#fff8e6','#f0
 
 export default function CalendarShell({ workspaceId }: Props) {
   const { monthKey } = useMonth()
-  const [items, setItems] = useState<FixedItem[]>([])
+  const lock = useMonthLock(workspaceId, monthKey)
+  const [liveItems, setItems] = useState<FixedItem[]>([])
+  // Mois clôturé : copie figée ; sinon, versions valables ce mois-ci
+  const items: FixedItem[] = lock.closed ? (lock.month.fixed_snapshot as FixedItem[]) : liveItems
+  const readOnly = lock.closed
   const [statuses, setStatuses] = useState<ItemStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
@@ -156,29 +162,20 @@ export default function CalendarShell({ workspaceId }: Props) {
       icon: fType === 'charge' ? (CATEGORIES.find(c => c.id === fCategory)?.icon ?? fIcon) : fIcon,
       color: fType === 'charge' ? (CATEGORIES.find(c => c.id === fCategory)?.color ?? fColor) : fColor,
       category: fCategory,
-      is_active: true,
     }
-    if (fType === 'income') {
-      // Revenus : historisés (un changement ne modifie pas les mois précédents)
-      const { is_active, ...incomePayload } = payload
-      await saveFixedItemVersioned(pb, {
-        editItem: editItem as VersionedFixedItem | null,
-        payload: { ...incomePayload, is_exceptional: !!editItem?.is_exceptional },
-        monthKey,
-      })
-    } else if (editItem) {
-      await pb.collection('fixed_items').update(editItem.id, payload)
-    } else {
-      await pb.collection('fixed_items').create(payload)
-    }
+    // Revenus et charges historisés : un changement ne modifie pas les mois précédents
+    await saveFixedItemVersioned(pb, {
+      editItem: editItem as VersionedFixedItem | null,
+      payload: { ...payload, is_exceptional: !!editItem?.is_exceptional },
+      monthKey,
+    })
     setSaving(false); setShowModal(false); fetchData()
   }
 
   async function deleteItem(id: string) {
     const pb = createClient()
     const item = items.find(i => i.id === id)
-    if (item?.type === 'income') await removeFixedItemFromMonth(pb, item as VersionedFixedItem, monthKey)
-    else await pb.collection('fixed_items').update(id, { is_active: false })
+    if (item) await removeFixedItemFromMonth(pb, item as VersionedFixedItem, monthKey)
     fetchData()
   }
 
@@ -252,6 +249,7 @@ export default function CalendarShell({ workspaceId }: Props) {
         <div className="flex items-center justify-center pt-20"><Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" /></div>
       ) : (
         <div className="px-4 pt-4 space-y-3">
+          <MonthLockBanner monthKey={monthKey} month={lock.month} closed={lock.closed} onClose={lock.close} onReopen={lock.reopen} />
 
           {/* Grille calendrier */}
           <div className="bg-[var(--bg-surface)] rounded-[20px] p-3">
@@ -361,6 +359,7 @@ export default function CalendarShell({ workspaceId }: Props) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {!readOnly && (<>
                       <button onClick={() => openEdit(item)}
                         className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
                         <Pencil size={12} color="var(--text-secondary)" />
@@ -369,6 +368,7 @@ export default function CalendarShell({ workspaceId }: Props) {
                         className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
                         <X size={12} color="var(--text-secondary)" />
                       </button>
+                      </>)}
                       <button onClick={() => toggleDone(item)}
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
                         <Check size={13} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
@@ -389,7 +389,7 @@ export default function CalendarShell({ workspaceId }: Props) {
       )}
 
       {/* FABs */}
-      <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">
+      {!readOnly && <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">
         <button onClick={() => openAdd('income')}
           className="w-12 h-12 bg-[#34c759] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           aria-label="Ajouter un revenu">
@@ -400,7 +400,7 @@ export default function CalendarShell({ workspaceId }: Props) {
           aria-label="Ajouter une charge">
           <Plus size={24} color="white" />
         </button>
-      </div>
+      </div>}
 
       {/* Modal */}
       {showModal && (

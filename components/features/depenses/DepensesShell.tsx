@@ -6,6 +6,9 @@ import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, defaultDateForMonth, isDateInMonth } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
+import MonthLockBanner from '@/components/ui/MonthLockBanner'
+import { useMonthLock } from '@/lib/utils/monthLock'
+import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info, CalendarRange } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
@@ -20,6 +23,10 @@ interface Charge {
   color: string | null
   category: string
   is_active: boolean
+  type?: 'charge'
+  start_month?: string | null
+  end_month?: string | null
+  is_exceptional?: boolean
 }
 
 const CATEGORIES = [
@@ -83,7 +90,7 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
           loading={monthLoading} refetch={refetch} />
       )}
       {tab === 'fixe' && (
-        <FixeTab workspaceId={workspaceId} monthKey={monthKey} />
+        <FixeTab workspaceId={workspaceId} monthKey={monthKey} parentMonth={month} onLockChange={refetch} />
       )}
       {tab === 'previsionnel' && (
         <PrevisionnelTab workspaceId={workspaceId} userId={userId} monthKey={monthKey}
@@ -346,8 +353,16 @@ function TxRow({ t, isLast, deleting, onDelete }: { t: any; isLast: boolean; del
 // ─────────────────────────────────────────────────────────
 // Onglet Fixe : abonnements / charges (apparaissent sur le calendrier)
 // ─────────────────────────────────────────────────────────
-function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: string }) {
-  const [items, setItems] = useState<Charge[]>([])
+function FixeTab({ workspaceId, monthKey, parentMonth, onLockChange }: { workspaceId: string; monthKey: string; parentMonth: any; onLockChange: () => void }) {
+  const lock = useMonthLock(workspaceId, monthKey)
+  // Resynchroniser le verrou quand useMonthData crée / auto-clôture le mois
+  useEffect(() => { lock.refresh() }, [parentMonth?.id, parentMonth?.is_closed])
+  const [liveItems, setItems] = useState<Charge[]>([])
+  // Mois clôturé : copie figée ; sinon, versions valables ce mois-ci
+  const items: Charge[] = lock.closed
+    ? (lock.month.fixed_snapshot as Charge[]).filter((i: any) => i.type === 'charge')
+    : filterFixedItemsForMonth(liveItems, monthKey)
+  const readOnly = lock.closed
   const [statuses, setStatuses] = useState<{ fixed_item_id: string; id?: string; is_done: boolean }[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -416,21 +431,30 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
     const pb = createClient()
     const cat = CATEGORIES.find(c => c.id === fCategory)
     const payload = {
-      workspace_id: workspaceId, type: 'charge', name: fName.trim(),
+      workspace_id: workspaceId, type: 'charge' as const, name: fName.trim(),
       amount: parseFloat(fAmount), due_day: parseInt(fDay),
       icon: cat?.icon ?? '📦', color: cat?.color ?? '#f5f5f7',
-      category: fCategory, is_active: true,
+      category: fCategory,
     }
-    if (editItem) await pb.collection('fixed_items').update(editItem.id, payload)
-    else await pb.collection('fixed_items').create(payload)
-    setSaving(false); setShowModal(false); fetchData()
+    try {
+      // Historisé : un changement de montant/date s'applique à partir du mois affiché
+      await saveFixedItemVersioned(pb, { editItem: editItem as VersionedFixedItem | null, payload, monthKey })
+      setShowModal(false)
+    } catch (err) {
+      console.error('FixeTab saveItem error:', err)
+    } finally {
+      setSaving(false); fetchData(); onLockChange()
+    }
   }
 
   async function deleteItem(id: string) {
     const pb = createClient()
-    await pb.collection('fixed_items').update(id, { is_active: false })
-    fetchData()
+    const item = items.find(i => i.id === id)
+    if (item) await removeFixedItemFromMonth(pb, item as VersionedFixedItem, monthKey)
+    fetchData(); onLockChange()
   }
+
+  const isEditingVersioned = !!editItem
 
   const total = items.reduce((s, i) => s + i.amount, 0)
   const paid = items.filter(i => isDone(i.id)).reduce((s, i) => s + i.amount, 0)
@@ -446,6 +470,9 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
         </div>
       ) : (
         <div className="px-4 pt-5 space-y-4">
+          <MonthLockBanner monthKey={monthKey} month={lock.month} closed={lock.closed}
+            onClose={async () => { await lock.close(); onLockChange() }}
+            onReopen={async () => { await lock.reopen(); onLockChange() }} />
           <div className="bg-[var(--bg-surface)] rounded-[20px] p-5">
             <div className="flex items-end justify-between mb-3">
               <div>
@@ -473,12 +500,14 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
                     <p className="text-[12px] text-[var(--text-secondary)]">{cat ? `${cat.icon} ${cat.id} · ` : ''}{fmt(item.amount)} · le {item.due_day}</p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {!readOnly && (<>
                     <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
                       <Pencil size={11} color="var(--text-secondary)" />
                     </button>
                     <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
                       <X size={11} color="var(--text-secondary)" />
                     </button>
+                    </>)}
                     <button onClick={() => toggleDone(item)}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
                       <Check size={14} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
@@ -491,11 +520,13 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
         </div>
       )}
 
+      {!readOnly && (
       <button onClick={openAdd}
         className="fixed right-4 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
         <Plus size={24} color="white" />
       </button>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
@@ -540,6 +571,11 @@ function FixeTab({ workspaceId, monthKey }: { workspaceId: string; monthKey: str
                   ))}
                 </div>
               </div>
+              {isEditingVersioned && (
+                <p className="text-[12px] text-[var(--text-secondary)] bg-[var(--bg-surface-2)] rounded-[10px] px-3 py-2">
+                  Un changement de montant ou de jour s&apos;applique à partir de ce mois. Les mois précédents gardent l&apos;ancien montant.
+                </p>
+              )}
               <button onClick={saveItem} disabled={saving || !fName || !fAmount || !fDay}
                 className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
