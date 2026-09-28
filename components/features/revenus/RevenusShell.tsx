@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences, getMonthLabel } from '@/lib/utils'
-import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
+import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, parseAnnualMonths, formatAnnualMonths, addMonths, isFixedItemActiveInMonth, MONTH_NAMES_SHORT, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
 import { useMonthLock } from '@/lib/utils/monthLock'
@@ -25,9 +25,10 @@ interface Income {
   start_month?: string | null
   end_month?: string | null
   is_exceptional?: boolean
+  annual_months?: string | null
 }
 
-type Frequency = 'monthly' | 'weekly' | 'exceptional'
+type Frequency = 'monthly' | 'weekly' | 'annual' | 'exceptional'
 
 const INCOME_ICONS = ['💵', '💼', '🏦', '💻', '🎨', '📊', '🏪', '💰']
 const COLORS = ['#fff3e0', '#f3f0ff', '#e8faf0', '#e8f4ff', '#fef0f5', '#fff8e6', '#f0f7ff', '#f5f5f7']
@@ -36,6 +37,7 @@ export default function RevenusShell({ workspaceId }: Props) {
   const { monthKey } = useMonth()
   const lock = useMonthLock(workspaceId, monthKey)
   const [liveItems, setItems] = useState<Income[]>([])
+  const [allIncomes, setAllIncomes] = useState<Income[]>([]) // toutes versions, pour les primes à venir
   // Mois clôturé : copie figée ; sinon, versions valables ce mois-ci
   const items: Income[] = lock.closed
     ? (lock.month.fixed_snapshot as Income[]).filter((i: any) => i.type === 'income')
@@ -55,6 +57,9 @@ export default function RevenusShell({ workspaceId }: Props) {
   const [fWeekday, setFWeekday] = useState(3) // jour de la semaine ISO (1=Lundi...7=Dimanche), si hebdomadaire, défaut Mercredi
   const [fIcon, setFIcon] = useState('💵')
   const [fColor, setFColor] = useState('#e8faf0')
+  const [fTargetMonth, setFTargetMonth] = useState('') // exceptionnel : mois de versement
+  const [fAnnualMonths, setFAnnualMonths] = useState<number[]>([]) // annuel : mois de versement chaque année
+  const [savedNote, setSavedNote] = useState('')
 
   async function fetchData() {
     setLoading(true)
@@ -66,6 +71,7 @@ export default function RevenusShell({ workspaceId }: Props) {
       ])
       // Seuls les revenus valables pour le mois affiché (historique préservé)
       setItems(filterFixedItemsForMonth((incomes ?? []) as any, monthKey))
+      setAllIncomes((incomes ?? []) as any)
       setStatuses((monthStatuses ?? []) as any)
     } catch (err: any) {
       // Ignore les annulations automatiques du SDK PocketBase (changement rapide de mois) ;
@@ -101,13 +107,18 @@ export default function RevenusShell({ workspaceId }: Props) {
 
   function openAdd() {
     setFName(''); setFAmount(''); setFFrequency('monthly'); setFDay(''); setFWeekday(3); setFIcon('💵'); setFColor('#e8faf0')
+    setFTargetMonth(monthKey); setFAnnualMonths([])
     setEditItem(null); setShowModal(true)
   }
 
   function openEdit(item: Income) {
     setFName(item.name); setFAmount(String(item.amount))
+    setFTargetMonth(item.is_exceptional ? (item.start_month || monthKey) : monthKey)
+    setFAnnualMonths(parseAnnualMonths(item.annual_months))
     if (item.is_exceptional) {
       setFFrequency('exceptional'); setFDay(String(item.due_day))
+    } else if (parseAnnualMonths(item.annual_months).length > 0) {
+      setFFrequency('annual'); setFDay(String(item.due_day))
     } else if (isWeeklyDueDay(item.due_day)) {
       setFFrequency('weekly'); setFWeekday(isoWeekdayFromDueDay(item.due_day)); setFDay('')
     } else {
@@ -120,6 +131,7 @@ export default function RevenusShell({ workspaceId }: Props) {
   async function saveItem() {
     if (!fName.trim() || !fAmount) return
     if (fFrequency !== 'weekly' && !fDay) return
+    if (fFrequency === 'annual' && fAnnualMonths.length === 0) return
     setSaving(true)
     try {
       const pb = createClient()
@@ -129,9 +141,15 @@ export default function RevenusShell({ workspaceId }: Props) {
         due_day: fFrequency === 'weekly' ? weeklyDueDay(fWeekday) : parseInt(fDay),
         icon: fIcon, color: fColor, category: 'Revenu',
         is_exceptional: fFrequency === 'exceptional',
+        annual_months: fFrequency === 'annual' ? formatAnnualMonths(fAnnualMonths) : '',
+        target_month: fFrequency === 'exceptional' ? fTargetMonth : undefined,
       }
       await saveFixedItemVersioned(pb, { editItem: editItem as VersionedFixedItem | null, payload, monthKey })
       setShowModal(false)
+      // Revenu programmé sur un autre mois : il n'apparaît pas ici, on le signale
+      if (fFrequency === 'exceptional' && fTargetMonth !== monthKey) setSavedNote(`${fName.trim()} programmé sur ${getMonthLabel(fTargetMonth)}`)
+      else if (fFrequency === 'annual' && !fAnnualMonths.includes(Number(monthKey.slice(5, 7)))) setSavedNote(`${fName.trim()} programmé chaque année en ${fAnnualMonths.map(m => MONTH_NAMES_SHORT[m - 1]).join(' et ')}`)
+      else setSavedNote('')
     } catch (err) {
       console.error('RevenusShell saveItem error:', err)
     } finally {
@@ -145,8 +163,24 @@ export default function RevenusShell({ workspaceId }: Props) {
     fetchData()
   }
 
-  const recurringItems = items.filter(i => !i.is_exceptional)
-  const exceptionalItems = items.filter(i => i.is_exceptional)
+  const recurringItems = items.filter(i => !i.is_exceptional && parseAnnualMonths(i.annual_months).length === 0)
+  const exceptionalItems = items.filter(i => i.is_exceptional || parseAnnualMonths(i.annual_months).length > 0)
+
+  // Primes / revenus exceptionnels et annuels à venir sur les 12 prochains mois
+  const upcoming = (() => {
+    const out: { key: string; month: string; item: Income }[] = []
+    for (let n = 1; n <= 12; n++) {
+      const mk = addMonths(monthKey, n)
+      allIncomes
+        .filter(i => i.is_exceptional || parseAnnualMonths(i.annual_months).length > 0)
+        .filter(i => isFixedItemActiveInMonth(i, mk))
+        .forEach(i => out.push({ key: `${i.id}-${mk}`, month: mk, item: i }))
+    }
+    return out
+  })()
+
+  // Options de mois pour un revenu exceptionnel : 12 mois avant → 24 mois après le mois affiché
+  const monthOptions = Array.from({ length: 37 }, (_, i) => addMonths(monthKey, i - 12))
   const isEditingRecurring = !!editItem && !editItem.is_exceptional && fFrequency !== 'exceptional'
 
   // Montant effectif de chaque revenu pour le mois affiché (un item hebdo compte 4 ou 5 fois selon le mois)
@@ -158,9 +192,12 @@ export default function RevenusShell({ workspaceId }: Props) {
 
   function renderItem(item: Income) {
     const done = isDone(item.id)
-    const weekly = !item.is_exceptional && isWeeklyDueDay(item.due_day)
+    const weekly = !item.is_exceptional && isWeeklyDueDay(item.due_day) && parseAnnualMonths(item.annual_months).length === 0
+    const annual = parseAnnualMonths(item.annual_months)
     const subLabel = item.is_exceptional
       ? `${fmt(item.amount)} · exceptionnel, le ${item.due_day}`
+      : annual.length > 0
+      ? `${fmt(item.amount)} · chaque année en ${annual.map(m => MONTH_NAMES_SHORT[m - 1]).join(', ')}, le ${item.due_day}`
       : weekly
         ? `${fmt(item.amount)} · tous les ${WEEKDAY_NAMES[isoWeekdayFromDueDay(item.due_day) - 1]}s (${countWeekdayOccurrences(monthKey, isoWeekdayFromDueDay(item.due_day))}× ce mois)`
         : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
@@ -244,10 +281,35 @@ export default function RevenusShell({ workspaceId }: Props) {
               )}
               {exceptionalItems.length > 0 && (
                 <>
-                  <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-2">Revenus exceptionnels</p>
+                  <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-2">Primes et revenus exceptionnels</p>
                   <div className="space-y-2">{exceptionalItems.map(renderItem)}</div>
                 </>
               )}
+            </>
+          )}
+
+          {savedNote && (
+            <div className="bg-[#3b82f6]/15 border border-[#3b82f6]/40 rounded-[14px] px-4 py-3 flex items-center gap-3">
+              <p className="flex-1 text-[13px] text-[var(--text-primary)]">✓ {savedNote}</p>
+              <button onClick={() => setSavedNote('')} aria-label="Fermer"><X size={14} color="var(--text-secondary)" /></button>
+            </div>
+          )}
+
+          {upcoming.length > 0 && (
+            <>
+              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-2">À venir (12 mois)</p>
+              <div className="bg-[var(--bg-surface)] rounded-[16px] divide-y divide-[var(--border-subtle)]">
+                {upcoming.map(({ key, month, item }) => (
+                  <div key={key} className="flex items-center px-4 py-3 gap-3">
+                    <span className="text-lg">{item.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-medium text-[var(--text-primary)] truncate">{item.name}</p>
+                      <p className="text-[12px] text-[var(--text-secondary)]">{getMonthLabel(month)} · le {item.due_day}</p>
+                    </div>
+                    <p className="text-[14px] font-semibold text-[var(--text-primary)]">{fmt(item.amount)}</p>
+                  </div>
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -288,9 +350,9 @@ export default function RevenusShell({ workspaceId }: Props) {
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Fréquence</label>
                 <div className="flex bg-[var(--bg-surface-2)] rounded-[12px] p-1 gap-1">
-                  {([['monthly', 'Mensuel'], ['weekly', 'Hebdo'], ['exceptional', 'Exceptionnel']] as const).map(([val, label]) => (
+                  {([['monthly', 'Mensuel'], ['weekly', 'Hebdo'], ['annual', 'Annuel'], ['exceptional', 'Ponctuel']] as const).map(([val, label]) => (
                     <button key={val} onClick={() => setFFrequency(val)}
-                      className={`flex-1 h-9 rounded-[9px] text-[13px] font-semibold transition-all ${fFrequency === val ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
+                      className={`flex-1 h-9 rounded-[9px] text-[12px] font-semibold transition-all ${fFrequency === val ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
                       {label}
                     </button>
                   ))}
@@ -299,15 +361,37 @@ export default function RevenusShell({ workspaceId }: Props) {
 
               {fFrequency !== 'weekly' ? (
                 <div>
-                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">
-                    {fFrequency === 'exceptional' ? `Jour de réception (${getMonthLabel(monthKey)})` : 'Jour de réception'}
-                  </label>
+                  {fFrequency === 'exceptional' && (
+                    <div className="mb-3">
+                      <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Mois de versement</label>
+                      <select value={fTargetMonth} onChange={e => setFTargetMonth(e.target.value)}
+                        className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]">
+                        {monthOptions.map(mk => <option key={mk} value={mk}>{getMonthLabel(mk)}</option>)}
+                      </select>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-2">Compté uniquement sur ce mois, jamais reporté sur les autres.</p>
+                    </div>
+                  )}
+                  {fFrequency === 'annual' && (
+                    <div className="mb-3">
+                      <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Mois de versement (chaque année)</label>
+                      <div className="grid grid-cols-6 gap-1.5">
+                        {MONTH_NAMES_SHORT.map((name, i) => {
+                          const on = fAnnualMonths.includes(i + 1)
+                          return (
+                            <button key={name} onClick={() => setFAnnualMonths(prev => on ? prev.filter(m => m !== i + 1) : [...prev, i + 1])}
+                              className={`h-9 rounded-[9px] text-[12px] font-medium transition-all border ${on ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
+                              {name}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <p className="text-[12px] text-[var(--text-secondary)] mt-2">Ex : 13e mois en Juin et Nov. Le montant est celui de chaque versement.</p>
+                    </div>
+                  )}
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour de réception</label>
                   <input type="number" min="1" max="31"
                     className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
                     placeholder="Ex : 28" value={fDay} onChange={e => setFDay(e.target.value)} />
-                  {fFrequency === 'exceptional' && (
-                    <p className="text-[12px] text-[var(--text-secondary)] mt-2">Compté uniquement sur {getMonthLabel(monthKey)}, jamais reporté sur les autres mois.</p>
-                  )}
                 </div>
               ) : (
                 <div>
@@ -349,7 +433,7 @@ export default function RevenusShell({ workspaceId }: Props) {
                   Un changement de montant ou de date s&apos;applique à partir de {getMonthLabel(monthKey)}. Les mois précédents gardent l&apos;ancien montant.
                 </p>
               )}
-              <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency !== 'weekly' && !fDay)}
+              <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency !== 'weekly' && !fDay) || (fFrequency === 'annual' && fAnnualMonths.length === 0)}
                 className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}

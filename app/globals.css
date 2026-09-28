@@ -18,6 +18,11 @@
   --surface-highlight-2: rgba(255, 255, 255, 0.1);
   --overlay: rgba(0, 0, 0, 0.6);
   --header-blur-bg: rgba(0, 0, 0, 0.9);
+  /* Graphiques (palette validée daltonisme, fond sombre #1c1c1e) */
+  --chart-income: #3b82f6;
+  --chart-expense: #ea580c;
+  --chart-savings: #0d9488;
+  --chart-grid: rgba(255, 255, 255, 0.08);
 }
 
 [data-theme="light"] {
@@ -35,6 +40,11 @@
   --surface-highlight-2: rgba(0, 0, 0, 0.06);
   --overlay: rgba(0, 0, 0, 0.4);
   --header-blur-bg: rgba(255, 255, 255, 0.9);
+  /* Graphiques (palette validée daltonisme, fond clair #ffffff) */
+  --chart-income: #2563eb;
+  --chart-expense: #ea580c;
+  --chart-savings: #0d9488;
+  --chart-grid: rgba(0, 0, 0, 0.07);
 }
 
 body {

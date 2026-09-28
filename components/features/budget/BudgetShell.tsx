@@ -1,5 +1,8 @@
 'use client'
 
+import Link from 'next/link'
+import { BarChart3 } from 'lucide-react'
+
 import { useMemo, useState } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
@@ -136,6 +139,10 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
             <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">Budget</h1>
           </div>
           <div className="flex items-center gap-2 mt-2">
+            <Link href="/bilan" aria-label="Bilan annuel"
+              className="h-8 px-3 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)] active:scale-95 transition-transform">
+              <BarChart3 size={14} /> Bilan
+            </Link>
             <a href="https://hacpe.duckdns.org/local/domotique.html"
               className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform">
               <Home size={15} />

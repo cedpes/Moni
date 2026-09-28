@@ -17,7 +17,7 @@ import { createClient } from '@/lib/pocketbase/client'
 import { getMonthKey } from '@/lib/utils'
 import { filterFixedItemsForMonth } from '@/lib/utils/fixedItemsVersioning'
 
-const SNAPSHOT_FIELDS = ['id', 'type', 'name', 'amount', 'due_day', 'icon', 'color', 'category', 'is_exceptional', 'start_month', 'end_month'] as const
+const SNAPSHOT_FIELDS = ['id', 'type', 'name', 'amount', 'due_day', 'icon', 'color', 'category', 'is_exceptional', 'start_month', 'end_month', 'annual_months'] as const
 
 export function toSnapshot(items: any[]): any[] {
   return (items ?? []).map(i => Object.fromEntries(SNAPSHOT_FIELDS.map(k => [k, i[k] ?? null])))
