@@ -24,9 +24,27 @@ const bricolage = localFont({
   fallback: ['system-ui', 'sans-serif'],
 })
 
+// Icônes servies comme fichiers statiques (public/), sans paramètre de cache dans l'URL :
+// - PNG 192/512 pour Chrome Android (il n'utilise pas les favicons SVG pour l'écran
+//   d'accueil et retombe sinon sur une simple lettre « M ») ;
+// - apple-touch-icon 180 px opaque pour iOS.
+// L'app est sous /moni (basePath) : les URL explicites doivent l'inclure.
+const BASE = '/moni'
+
 export const metadata: Metadata = {
   title: 'Moni',
   description: 'Suivi de budget personnel',
+  applicationName: 'Moni',
+  manifest: `${BASE}/manifest.webmanifest`,
+  icons: {
+    icon: [
+      { url: `${BASE}/icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
+      { url: `${BASE}/icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
+      { url: `${BASE}/favicon.svg`, type: 'image/svg+xml' },
+    ],
+    apple: [{ url: `${BASE}/apple-touch-icon.png`, sizes: '180x180', type: 'image/png' }],
+    shortcut: [`${BASE}/icons/icon-192.png`],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
