@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/pocketbase/client'
@@ -23,6 +23,24 @@ export default function LoginForm() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  // Page de démarrage de l'app installée : si une session valide existe déjà, on file
+  // directement vers l'app. Garde-fou anti-boucle : si le serveur refuse la session et
+  // renvoie ici, on ne réessaie pas avant 30 s (le formulaire reste affiché).
+  useEffect(() => {
+    const pb = createClient()
+    if (!pb.authStore.isValid) return
+    try {
+      const last = Number(sessionStorage.getItem('moni-auto-login') ?? 0)
+      if (Date.now() - last < 30_000) return
+      sessionStorage.setItem('moni-auto-login', String(Date.now()))
+    } catch { return }
+    // Recopie la session dans le cookie lu par le serveur avant de rediriger
+    document.cookie = pb.authStore.exportToCookie({
+      httpOnly: false, secure: window.location.protocol === 'https:', sameSite: 'Lax',
+    })
+    router.replace(redirectTo)
+  }, [router, redirectTo])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

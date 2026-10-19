@@ -9,12 +9,12 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'Moni',
     short_name: 'Moni',
     description: 'Suivi de budget personnel',
-    // Pas de « /moni/ » : Next le redirige (308) vers « /moni » avec une page vide,
-    // et iOS, qui lit la page de démarrage pour trouver l'icône, retombait sur un « M ».
-    // /moni/budget répond directement (connecté) ou redirige vers /moni/login avec les
-    // balises d'icône dans la réponse (déconnecté).
-    id: `${BASE}/budget`,
-    start_url: `${BASE}/budget`,
+    // Page de démarrage qui répond toujours 200 sans redirection (comme l'app
+    // domotique, dont l'icône fonctionne) : iOS lit cette page pour trouver l'icône
+    // et retombait sur un « M » avec « /moni/ » (308) puis « /moni/budget » (307).
+    // Connecté, la page de connexion renvoie aussitôt vers le Budget.
+    id: `${BASE}/login`,
+    start_url: `${BASE}/login`,
     scope: `${BASE}/`,
     display: 'standalone',
     orientation: 'portrait',
