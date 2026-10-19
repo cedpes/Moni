@@ -9,7 +9,7 @@ import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
 import { useMonthLock, getOpenMonth, closeMonth } from '@/lib/utils/monthLock'
 import DonutChart from '@/components/ui/DonutChart'
-import { Plus, X, Loader2, Check, Pencil, Settings2 } from 'lucide-react'
+import { Plus, X, Loader2, Check, Settings2 } from 'lucide-react'
 
 interface Props { workspaceId: string; userId: string }
 
@@ -231,25 +231,28 @@ export default function RevenusShell({ workspaceId }: Props) {
         ? `${fmt(item.amount)} · tous les ${WEEKDAY_NAMES[isoWeekdayFromDueDay(item.due_day) - 1]}s (${countWeekdayOccurrences(monthKey, isoWeekdayFromDueDay(item.due_day))}× ce mois)`
         : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
     return (
-      <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
-        <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>
-          {item.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-[15px] font-semibold text-[var(--text-primary)]">{item.name}</p>
-          <p className="text-[12px] text-[var(--text-secondary)]">{subLabel}</p>
-        </div>
+      <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center pr-4 gap-2">
+        <button onClick={() => { if (!readOnly) openEdit(item) }} disabled={readOnly}
+          aria-label={readOnly ? `${item.name}, ${subLabel}` : `Modifier ${item.name}, ${subLabel}`}
+          className="flex-1 min-w-0 flex items-center gap-3 pl-4 py-3.5 text-left rounded-l-[16px] active:bg-[var(--surface-highlight)] transition-colors disabled:cursor-default">
+          <span className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>
+            {item.icon}
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[15px] font-semibold text-[var(--text-primary)] truncate">{item.name}</span>
+            <span className="block text-[12px] text-[var(--text-secondary)]">{subLabel}</span>
+          </span>
+        </button>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {!readOnly && (<>
-          <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-            <Pencil size={11} color="var(--text-secondary)" />
-          </button>
-          <button onClick={() => deleteItem(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-            <X size={11} color="var(--text-secondary)" />
-          </button>
-          </>)}
+          {!readOnly && (
+            <button onClick={() => deleteItem(item)} aria-label={`Supprimer ${item.name}`}
+              className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+              <X size={11} color="var(--text-secondary)" />
+            </button>
+          )}
           {!weekly && (
-            <button onClick={() => toggleDone(item)}
+            <button onClick={() => toggleDone(item)} aria-pressed={done}
+              aria-label={done ? `${item.name} reçu, annuler` : `Marquer ${item.name} comme reçu`}
               className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-positive' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
               <Check size={14} color={done ? 'var(--on-positive)' : 'var(--text-tertiary)'} strokeWidth={2.5} />
             </button>

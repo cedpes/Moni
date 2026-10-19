@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt, tileBg } from '@/lib/utils'
 import DonutChart from '@/components/ui/DonutChart'
-import { Plus, X, Loader2, Pencil } from 'lucide-react'
+import { Plus, X, Loader2 } from 'lucide-react'
 
 interface Props { workspaceId: string }
 
@@ -171,34 +171,33 @@ export default function EpargneShell({ workspaceId }: Props) {
                 const overdue = g.target_date && pct < 100 && new Date(g.target_date) < new Date(new Date().toDateString())
                 return (
                   <div key={g.id} className="bg-[var(--bg-surface)] rounded-[16px] p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(g.color ?? 'var(--bg-surface-2)') }}>
-                        {g.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[15px] font-semibold text-[var(--text-primary)]">{g.name}</p>
-                        <p className="text-[12px] text-[var(--text-secondary)]">Objectif: {fmt(g.target_amount)} · Total épargné: {fmt(g.current_amount)}</p>
-                        {g.target_date && (
-                          <p className={`text-[12px] mt-0.5 ${overdue ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
-                            {overdue ? 'Échéance dépassée · ' : 'Échéance : '}{fmtDate(g.target_date)}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button onClick={() => openEdit(g)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                          <Pencil size={11} color="var(--text-secondary)" />
-                        </button>
-                        <button onClick={() => deleteGoal(g.id)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                          <X size={11} color="var(--text-secondary)" />
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <button onClick={() => openEdit(g)} aria-label={`Modifier l'objectif ${g.name}`}
+                        className="flex-1 min-w-0 flex items-center gap-3 text-left rounded-[12px] -m-1 p-1 active:bg-[var(--surface-highlight)] transition-colors">
+                        <span className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(g.color ?? 'var(--bg-surface-2)') }}>
+                          {g.icon}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[15px] font-semibold text-[var(--text-primary)] truncate">{g.name}</span>
+                          <span className="block text-[12px] text-[var(--text-secondary)]">Objectif : {fmt(g.target_amount)} · Total épargné : {fmt(g.current_amount)}</span>
+                          {g.target_date && (
+                            <span className={`block text-[12px] mt-0.5 ${overdue ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
+                              {overdue ? 'Échéance dépassée · ' : 'Échéance : '}{fmtDate(g.target_date)}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                      <button onClick={() => deleteGoal(g.id)} aria-label={`Supprimer l'objectif ${g.name}`}
+                        className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
+                        <X size={11} color="var(--text-secondary)" />
+                      </button>
                     </div>
                     <div className="h-1.5 bg-[var(--bg-surface-2)] rounded-full overflow-hidden mb-3">
                       <div className="h-full rounded-full bg-cat-epargne transition-all" style={{ width: `${pct}%` }} />
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-[12px] text-[var(--text-secondary)]">{pct}% atteint</p>
-                      <button onClick={() => { setContribFor(g); setContribAmount('') }} aria-label="Ajouter un versement"
+                      <button onClick={() => { setContribFor(g); setContribAmount('') }} aria-label={`Ajouter un versement à ${g.name}`}
                         className="w-8 h-8 rounded-full bg-cat-epargne flex items-center justify-center active:scale-95 transition-transform">
                         <Plus size={16} color="var(--on-positive)" />
                       </button>

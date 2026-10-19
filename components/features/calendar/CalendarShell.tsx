@@ -8,7 +8,7 @@ import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMo
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
 import { useMonthLock } from '@/lib/utils/monthLock'
-import { Plus, X, Loader2, Check, Pencil } from 'lucide-react'
+import { Plus, X, Loader2, Check } from 'lucide-react'
 
 interface Props { workspaceId: string }
 
@@ -347,29 +347,30 @@ export default function CalendarShell({ workspaceId }: Props) {
                 const status = getDayStatus(item)
                 const done = isDone(item.id)
                 return (
-                  <div key={item.id} className={`flex items-center px-4 py-3.5 gap-3 ${i < displayItems.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
-                    <div className="w-10 h-10 rounded-[11px] flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>{item.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-medium text-[var(--text-primary)]">{item.name}</p>
-                      <p className={`text-[12px] font-medium ${done ? 'text-positive' : status === 'late' ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
-                        {item.type === 'charge' && item.category ? `${CATEGORIES.find(c => c.id === item.category)?.icon ?? ''} ${item.category} · ` : ''}
-                        Le {item.due_day < 0 ? `fin du mois − ${Math.abs(item.due_day)}j (${realDay(item.due_day)})` : item.due_day} · {item.type === 'income' ? '+' : '−'}{fmt(item.amount)}
-                        {done ? ' · ✓' : status === 'late' ? ' · En retard' : ''}
-                      </p>
-                    </div>
+                  <div key={item.id} className={`flex items-center pr-4 gap-2 ${i < displayItems.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
+                    <button onClick={() => { if (!readOnly) openEdit(item) }} disabled={readOnly}
+                      aria-label={readOnly ? `${item.name}, ${fmt(item.amount)}` : `Modifier ${item.name}, ${fmt(item.amount)}`}
+                      className="flex-1 min-w-0 flex items-center gap-3 pl-4 py-3.5 text-left active:bg-[var(--surface-highlight)] transition-colors disabled:cursor-default">
+                      <span className="w-10 h-10 rounded-[11px] flex items-center justify-center text-xl flex-shrink-0"
+                        style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>{item.icon}</span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-[15px] font-medium text-[var(--text-primary)] truncate">{item.name}</span>
+                        <span className={`block text-[12px] font-medium ${done ? 'text-positive' : status === 'late' ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
+                          {item.type === 'charge' && item.category ? `${CATEGORIES.find(c => c.id === item.category)?.icon ?? ''} ${item.category} · ` : ''}
+                          Le {item.due_day < 0 ? `fin du mois − ${Math.abs(item.due_day)}j (${realDay(item.due_day)})` : item.due_day} · {item.type === 'income' ? '+' : '−'}{fmt(item.amount)}
+                          {done ? ' · ✓' : status === 'late' ? ' · En retard' : ''}
+                        </span>
+                      </span>
+                    </button>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {!readOnly && (<>
-                      <button onClick={() => openEdit(item)}
-                        className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                        <Pencil size={12} color="var(--text-secondary)" />
-                      </button>
-                      <button onClick={() => deleteItem(item.id)}
-                        className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                        <X size={12} color="var(--text-secondary)" />
-                      </button>
-                      </>)}
-                      <button onClick={() => toggleDone(item)}
+                      {!readOnly && (
+                        <button onClick={() => deleteItem(item.id)} aria-label={`Supprimer ${item.name}`}
+                          className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                          <X size={12} color="var(--text-secondary)" />
+                        </button>
+                      )}
+                      <button onClick={() => toggleDone(item)} aria-pressed={done}
+                        aria-label={done ? `${item.name} fait, annuler` : `Marquer ${item.name} comme fait`}
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${done ? 'bg-positive' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
                         <Check size={13} color={done ? 'var(--on-positive)' : 'var(--text-tertiary)'} strokeWidth={2.5} />
                       </button>

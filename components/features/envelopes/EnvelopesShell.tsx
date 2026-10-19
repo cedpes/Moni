@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
 import { fmt, tileBg } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
-import { Plus, X, Loader2, Pencil, CalendarDays, ChevronRight } from 'lucide-react'
+import { Plus, X, Loader2, CalendarDays, ChevronRight } from 'lucide-react'
 
 const ICONS = ['🏠','✨','💰','🛒','🎉','🍽️','⛽','🎵','📺','💊','🚗','👕','🎮','✈️','🏋️','📦']
 const COLORS = ['#fff3e0','#f3f0ff','#e8faf0','#e8f4ff','#fef0f5','#fff8e6','#f0f7ff','#f5f5f7']
@@ -191,47 +191,50 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
               const displayBudget = isPlaisir ? Math.max(0, plaisirAuto) : env.budget
               const remain = displayBudget - spent
               const borderColor = ENV_BORDER[env.slug] ?? 'var(--bg-surface-3)'
+              const editable = !isPlaisir && !isCharges
+              const navTo = isCourses ? '/courses' : isEpargne ? '/epargne' : null
 
               return (
-                <button key={env.id}
-                  onClick={() => { if (isCourses) router.push('/courses'); if (isEpargne) router.push('/epargne') }}
-                  className="w-full text-left bg-[var(--bg-surface)] rounded-[16px] p-4 border"
-                  style={{ borderColor }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: tileBg(env.color ?? ENV_COLORS[env.slug] ?? 'var(--bg-surface-2)') }}>{env.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[15px] font-semibold text-[var(--text-primary)]">{env.name}</p>
+                <div key={env.id} className="w-full bg-[var(--bg-surface)] rounded-[16px] border flex items-stretch" style={{ borderColor }}>
+                  <button
+                    onClick={() => { if (editable) openEdit(env); else if (navTo) router.push(navTo) }}
+                    disabled={!editable && !navTo}
+                    aria-label={editable ? `Modifier l'enveloppe ${env.name}` : navTo ? `Ouvrir ${env.name}` : undefined}
+                    className="flex-1 min-w-0 flex items-center gap-3 p-4 text-left rounded-l-[16px] active:bg-[var(--surface-highlight)] transition-colors disabled:cursor-default">
+                    <span className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0"
+                      style={{ background: tileBg(env.color ?? ENV_COLORS[env.slug] ?? 'var(--bg-surface-2)') }}>{env.icon}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="flex items-center gap-2">
+                        <span className="text-[15px] font-semibold text-[var(--text-primary)]">{env.name}</span>
                         {(isCharges || isPlaisir) && <span className="text-[10px] font-medium bg-[var(--bg-surface-2)] text-[var(--text-secondary)] px-1.5 py-0.5 rounded-full">Auto</span>}
-                      </div>
-                      <p className="text-[13px] text-cat-revenus mt-1">• Montant : {fmt(displayBudget)}</p>
-                      <p className={`text-[13px] mt-0.5 ${remain < 0 ? 'text-negative' : 'text-negative'}`}>• Restant: {fmt(remain)}</p>
+                      </span>
+                      <span className="block text-[13px] text-cat-revenus mt-1">• Montant : {fmt(displayBudget)}</span>
+                      <span className={`block text-[13px] mt-0.5 ${remain < 0 ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>• Restant : {fmt(remain)}</span>
                       {isEpargne && (
-                        <p className="text-[12px] text-positive mt-0.5">
+                        <span className="block text-[12px] text-positive mt-0.5">
                           {activeGoal ? `🎯 ${activeGoal.name} : ${fmt(activeGoal.current_amount ?? 0)} / ${fmt(activeGoal.target_amount ?? 0)}` : 'Aucun objectif actif — vas sur Épargne pour en créer un'}
-                        </p>
+                        </span>
+                      )}
+                    </span>
+                    {navTo && !editable && <ChevronRight size={16} color="var(--text-secondary)" aria-hidden="true" />}
+                  </button>
+                  {(navTo && editable) || (editable && !env.is_system) ? (
+                    <div className="flex flex-col items-center justify-center gap-2 pr-3 flex-shrink-0">
+                      {navTo && editable && (
+                        <button onClick={() => router.push(navTo)} aria-label={`Ouvrir la page ${env.name}`}
+                          className="w-8 h-8 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                          <ChevronRight size={16} color="var(--text-secondary)" />
+                        </button>
+                      )}
+                      {editable && !env.is_system && (
+                        <button onClick={() => deleteEnvelope(env.id)} aria-label={`Supprimer l'enveloppe ${env.name}`}
+                          className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                          <X size={11} color="var(--text-secondary)" />
+                        </button>
                       )}
                     </div>
-                    <div className="flex flex-col items-end gap-2 flex-shrink-0">
-                      {(isCourses || isEpargne) && <ChevronRight size={16} color="var(--text-secondary)" />}
-                      {!isPlaisir && !isCharges && (
-                        <div className="flex gap-1.5">
-                          <span onClick={(e) => { e.stopPropagation(); openEdit(env) }}
-                            className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                            <Pencil size={11} color="var(--text-secondary)" />
-                          </span>
-                          {!env.is_system && (
-                            <span onClick={(e) => { e.stopPropagation(); deleteEnvelope(env.id) }}
-                              className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                              <X size={11} color="var(--text-secondary)" />
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </button>
+                  ) : null}
+                </div>
               )
             })}
           </div>
