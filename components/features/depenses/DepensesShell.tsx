@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, defaultDateForMonth, isDateInMonth, tileBg } from '@/lib/utils'
+import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, defaultDateForMonth, tileBg } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
 import { useMonthLock } from '@/lib/utils/monthLock'
@@ -104,18 +104,11 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 // ─────────────────────────────────────────────────────────
 // Onglet Courante : dépenses du quotidien (pas sur le calendrier)
 // ─────────────────────────────────────────────────────────
-function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned, transactions, fixedItems, categories, loading, refetch }: {
+function CouranteTab({ monthKey, month, envelopes, planned, transactions, fixedItems, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
   month: any; envelopes: any[]; planned: any[]; transactions: any[]; fixedItems: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
-  const [showModal, setShowModal] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
-  const [fLabel, setFLabel] = useState('')
-  const [fAmount, setFAmount] = useState('')
-  const [fDate, setFDate] = useState(() => defaultDateForMonth(monthKey))
-  const [fCatId, setFCatId] = useState('')
-  const [dateError, setDateError] = useState(false)
   const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
 
   // Toutes les dépenses courantes = transactions hors charges fixes
@@ -163,30 +156,6 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
       .reduce((s: number, t: any) => s + t.amount, 0)
     return income - chargesBudget - coursesBudget - epargneBudget - totalPlannedAll - spontaneousReal
   }, [month, envelopes, planned, courantes])
-
-  function openAdd() {
-    setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setFCatId(''); setDateError(false)
-    setShowModal(true)
-  }
-
-  async function addTransaction() {
-    const amount = parseFloat(fAmount)
-    if (!fLabel.trim() || !amount || !month) return
-    const date = fDate || defaultDateForMonth(monthKey)
-    if (!isDateInMonth(date, monthKey)) { setDateError(true); return }
-    setDateError(false)
-    setSaving(true)
-    const pb = createClient()
-    const cat = categories.find((c: any) => c.id === fCatId)
-    const envelopeSlug = cat?.name === 'Courses' ? 'courses' : 'plaisir'
-    await pb.collection('transactions').create({
-      month_id: month.id, workspace_id: workspaceId,
-      envelope_slug: envelopeSlug, category_id: fCatId || null,
-      label: fLabel.trim(), amount,
-      date, created_by: userId,
-    })
-    setSaving(false); setShowModal(false); refetch()
-  }
 
   async function deleteTransaction(id: string) {
     setDeleting(id)
@@ -270,62 +239,6 @@ function CouranteTab({ workspaceId, userId, monthKey, month, envelopes, planned,
         </div>
       )}
 
-      <button onClick={openAdd}
-        className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-        <Plus size={24} color="var(--accent-ink)" />
-      </button>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-[var(--overlay)] z-[60] flex items-end justify-center"
-          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg p-5 pb-10">
-            <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Nouvelle dépense courante</h2>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                <X size={14} color="var(--text-secondary)" />
-              </button>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
-                  placeholder="Ex : Boulangerie, essence…" value={fLabel} onChange={e => setFLabel(e.target.value)} autoFocus />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
-                  <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
-                    placeholder="0.00" value={fAmount} onChange={e => setFAmount(e.target.value)} />
-                </div>
-                <div>
-                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Date</label>
-                  <input type="date"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
-                    value={fDate} onChange={e => { setFDate(e.target.value); setDateError(false) }} />
-                </div>
-              </div>
-              {dateError && (
-                <p className="text-[12px] text-negative px-1">La date doit être dans le mois affiché ({monthKey}), sinon la dépense ne compte pas dans son budget.</p>
-              )}
-              <div>
-                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Catégorie</label>
-                <select className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none appearance-none"
-                  value={fCatId} onChange={e => setFCatId(e.target.value)}>
-                  <option value="">Sans catégorie</option>
-                  {categories.map((c: any) => <option key={c.id} value={c.id}>{c.icon ?? CAT_ICONS[c.name] ?? '📦'} {c.name}</option>)}
-                </select>
-              </div>
-              <button onClick={addTransaction} disabled={saving || !fLabel || !fAmount}
-                className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
-                {saving && <Loader2 size={16} className="animate-spin" />}Ajouter
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
@@ -522,9 +435,9 @@ function FixeTab({ workspaceId, monthKey, parentMonth, onLockChange }: { workspa
 
       {!readOnly && (
       <button onClick={openAdd}
-        className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-        <Plus size={24} color="var(--accent-ink)" />
+        className="fixed right-4 w-14 h-14 bg-[var(--bg-surface-3)] border border-[var(--border-default)] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}>
+        <Plus size={24} color="var(--text-primary)" />
       </button>
       )}
 
@@ -860,9 +773,9 @@ function PrevisionnelTab({ workspaceId, userId, monthKey, month, envelopes, plan
       )}
 
       <button onClick={openAdd}
-        className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
-        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-        <Plus size={24} color="var(--accent-ink)" />
+        className="fixed right-4 w-14 h-14 bg-[var(--bg-surface-3)] border border-[var(--border-default)] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}>
+        <Plus size={24} color="var(--text-primary)" />
       </button>
 
       {showModal && (

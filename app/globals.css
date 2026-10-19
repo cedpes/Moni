@@ -8,6 +8,7 @@
    ========================================================================== */
 
 :root {
+  color-scheme: dark; /* contrôles natifs (date, sélecteurs) assortis au thème */
   --moni-font-sans: var(--font-manrope), system-ui, sans-serif;
   --moni-font-display: var(--font-bricolage), var(--font-manrope), system-ui, sans-serif;
 
@@ -60,6 +61,15 @@
   --chart-savings: var(--cat-epargne);
   --chart-grid: rgba(255, 255, 255, 0.08);
 
+  /* Carte héros « Reste à vivre » : citron sur fond sombre, encre en thème clair */
+  --hero-bg: var(--accent);
+  --hero-fg: #0d0e11;
+  --hero-muted: rgba(13, 14, 17, 0.7);
+  --hero-track: rgba(13, 14, 17, 0.14);
+  --hero-bar: #0d0e11;
+  --hero-pill-bg: #0d0e11;
+  --hero-pill-fg: #c8f169;
+
   /* Intensité des pastels des tuiles d'icônes (voir tileBg) */
   --tile-mix: 16%;
 
@@ -71,6 +81,7 @@
 }
 
 [data-theme="light"] {
+  color-scheme: light;
   --bg-app: #f4f3ee;
   --bg-surface: #ffffff;
   --bg-surface-2: #eeede6;
@@ -112,6 +123,14 @@
 
   --chart-grid: rgba(0, 0, 0, 0.07);
   --tile-mix: 100%;
+
+  --hero-bg: #15161a;
+  --hero-fg: #f4f4f2;
+  --hero-muted: rgba(244, 244, 242, 0.72);
+  --hero-track: rgba(255, 255, 255, 0.14);
+  --hero-bar: #c8f169;
+  --hero-pill-bg: #c8f169;
+  --hero-pill-fg: #15161a;
 }
 
 /* Expose les jetons à Tailwind v4 : bg-accent, text-positive, font-display… */

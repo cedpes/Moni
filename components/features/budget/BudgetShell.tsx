@@ -1,21 +1,16 @@
 'use client'
 
-import Link from 'next/link'
-import { BarChart3 } from 'lucide-react'
-
 import { useMemo, useState } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
-import { useRouter } from 'next/navigation'
 import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, fixedItemMonthlyAmount } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
-import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Settings, Home, Info, ShoppingCart, CalendarRange } from 'lucide-react'
+import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Home, Info, ShoppingCart, CalendarRange } from 'lucide-react'
 
 interface Props { workspaceId: string; userId: string; displayName: string | null }
 
 export default function BudgetShell({ workspaceId, displayName }: Props) {
-  const router = useRouter()
   const { monthKey, monthLabel } = useMonth()
   const { month, envelopes, transactions, planned, fixedItems, fixedItemStatuses, loading } = useMonthData(monthKey, workspaceId)
   const [tab, setTab] = useState<'reel' | 'previsionnel'>('reel')
@@ -102,6 +97,17 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
 
   const { income, charges, variable, courses, epargne, restant, daysLeft, perDay, categoryData, categoryTotal } = metrics
 
+  const engaged = charges + variable + courses + epargne
+  const usedPct = income > 0 ? Math.min(100, Math.max(0, (engaged / income) * 100)) : (engaged > 0 ? 100 : 0)
+  const flowSegments = [
+    { label: tab === 'reel' ? 'Fixe payé' : 'Fixe', value: charges, color: 'var(--cat-fixe)' },
+    { label: 'Variable', value: variable, color: 'var(--cat-variable)' },
+    { label: 'Courses', value: courses, color: 'var(--cat-courses)' },
+    { label: 'Épargne', value: epargne, color: 'var(--cat-epargne)' },
+  ]
+  // Si les dépenses dépassent les revenus, la barre se base sur le total dépensé
+  const flowBase = Math.max(income, engaged, 1)
+
   // Vue hebdomadaire : découpe le mois en semaines et affecte à chacune les revenus/charges
   // fixes qui tombent dedans (grâce au jour de prélèvement / jour de semaine des fixed_items).
   // Le prévisionnel variable n'a pas de date précise -> il est réparti à parts égales entre les semaines.
@@ -139,19 +145,11 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
             <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">Budget</h1>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <Link href="/bilan" aria-label="Bilan annuel"
-              className="h-8 px-3 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center gap-1.5 text-[12px] font-semibold text-[var(--text-secondary)] active:scale-95 transition-transform">
-              <BarChart3 size={14} /> Bilan
-            </Link>
-            <a href="https://hacpe.duckdns.org/local/domotique.html"
+            <a href="https://hacpe.duckdns.org/local/domotique.html" aria-label="Domotique"
               className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform">
               <Home size={15} />
             </a>
             <MonthPicker />
-            <button onClick={() => router.push('/settings')}
-              className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform">
-              <Settings size={15} />
-            </button>
           </div>
         </div>
       </header>
@@ -163,8 +161,8 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
           {/* Toggle Mensuel / Hebdomadaire */}
           <div className="flex bg-[var(--bg-surface)] rounded-[16px] p-1 gap-1">
             {(['mensuel', 'hebdomadaire'] as const).map(v => (
-              <button key={v} onClick={() => setViewMode(v)}
-                className={`flex-1 h-9 rounded-[12px] text-[14px] font-semibold transition-all flex items-center justify-center gap-1.5 ${viewMode === v ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
+              <button key={v} onClick={() => setViewMode(v)} aria-pressed={viewMode === v}
+                className={`flex-1 h-9 rounded-[12px] text-[14px] font-semibold transition-all flex items-center justify-center gap-1.5 ${viewMode === v ? 'bg-[var(--bg-surface-3)] text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                 {v === 'hebdomadaire' && <CalendarRange size={14} />}
                 {v === 'mensuel' ? 'Mensuel' : 'Hebdomadaire'}
               </button>
@@ -211,20 +209,65 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
             </div>
           ) : (
           <>
-          {/* Tabs Réel / Prévisionnel */}
-          <div className="flex bg-[var(--bg-surface)] rounded-[16px] p-1 gap-1">
-            {(['reel', 'previsionnel'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                className={`flex-1 h-9 rounded-[12px] text-[14px] font-semibold transition-all ${tab === t ? 'bg-[var(--text-primary)] text-[var(--bg-app)]' : 'text-[var(--text-secondary)]'}`}>
-                {t === 'reel' ? 'Réel' : 'Prévisionnel'}
-              </button>
-            ))}
-          </div>
+          {/* Carte héros : reste à vivre, mode Réel / Prévisionnel, rythme quotidien */}
+          <section aria-labelledby="hero-title" className="rounded-[var(--radius-hero)] p-5 space-y-4"
+            style={{ background: 'var(--hero-bg)', color: 'var(--hero-fg)' }}>
+            <div className="flex items-center justify-between gap-3">
+              <h2 id="hero-title" className="text-[13px] font-bold uppercase tracking-[0.04em]">
+                {restant >= 0 ? 'Reste à vivre' : 'Dépassement'}
+              </h2>
+              <div role="group" aria-label="Mode de calcul" className="flex rounded-full p-[3px]" style={{ background: 'var(--hero-track)' }}>
+                {(['reel', 'previsionnel'] as const).map(t => (
+                  <button key={t} onClick={() => setTab(t)} aria-pressed={tab === t}
+                    className="h-8 px-3.5 rounded-full text-[12px] font-bold transition-colors"
+                    style={tab === t ? { background: 'var(--hero-pill-bg)', color: 'var(--hero-pill-fg)' } : { color: 'var(--hero-fg)' }}>
+                    {t === 'reel' ? 'Réel' : 'Prévu'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="font-display text-[48px] font-bold leading-none">{fmt(restant)}</p>
+            <div className="space-y-1.5">
+              <div role="progressbar" aria-label="Part du revenu déjà engagée"
+                aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(usedPct)}
+                className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--hero-track)' }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${usedPct}%`, background: 'var(--hero-bar)' }} />
+              </div>
+              <div className="flex justify-between text-[13px] font-semibold" style={{ color: 'var(--hero-muted)' }}>
+                <span>{daysLeft} jour{daysLeft > 1 ? 's' : ''} restant{daysLeft > 1 ? 's' : ''}</span>
+                <span>{restant > 0 ? <>≈ {fmt(perDay)} / jour</> : 'Plus de marge ce mois-ci'}</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Où va l'argent : barre empilée par rapport aux revenus */}
+          <section aria-labelledby="flux-title" className="bg-[var(--bg-surface)] rounded-[var(--radius-card)] p-4">
+            <div className="flex items-baseline justify-between mb-3">
+              <h2 id="flux-title" className="text-[15px] font-bold text-[var(--text-primary)]">Où va l&apos;argent</h2>
+              <span className="text-[13px] text-[var(--text-secondary)]">sur {fmt(income)} de revenus</span>
+            </div>
+            <div role="img"
+              aria-label={flowSegments.map(f => `${f.label} ${fmt(f.value)}`).join(', ') + (restant > 0 ? `, reste ${fmt(restant)}` : '')}
+              className="flex h-3.5 rounded-full overflow-hidden gap-[2px] bg-[var(--bg-surface-2)]">
+              {flowSegments.filter(f => f.value > 0).map(f => (
+                <div key={f.label} style={{ width: `${(f.value / flowBase) * 100}%`, background: f.color }} />
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 mt-3.5">
+              {flowSegments.map(f => (
+                <div key={f.label} className="flex items-center gap-2 text-[13px] min-w-0">
+                  <span aria-hidden="true" className="w-2.5 h-2.5 rounded-[3px] flex-shrink-0" style={{ background: f.color }} />
+                  <span className="flex-1 truncate text-[var(--text-body)]">{f.label}</span>
+                  <span className="font-semibold text-[var(--text-primary)]">{fmt(f.value)}</span>
+                </div>
+              ))}
+            </div>
+          </section>
 
           {/* Entrées et sorties d'argent */}
           <div>
             <p className="text-[15px] font-semibold text-[var(--text-primary)] px-1 mb-2">Entrées et sorties d&apos;argent</p>
-            <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
+            <div className="bg-[var(--bg-surface)] rounded-[var(--radius-card)] overflow-hidden">
               {[
                 { label: 'Revenus', value: income, icon: Wallet, bg: 'color-mix(in srgb, var(--cat-revenus) 16%, transparent)', color: 'var(--cat-revenus)' },
                 { label: tab === 'reel' ? 'Dépenses fixes payées' : 'Dépenses fixes', value: charges, icon: CreditCard, bg: 'color-mix(in srgb, var(--cat-fixe) 16%, transparent)', color: 'var(--cat-fixe)' },
@@ -250,32 +293,8 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
             </div>
           </div>
 
-          {/* Gestion du budget quotidien */}
-          <div className="bg-[var(--bg-surface)] rounded-[20px] p-4">
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-3">Gestion du budget quotidien</p>
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
-                <Info size={14} color="var(--text-secondary)" />
-              </div>
-              <p className="text-[14px] text-[var(--text-body)] leading-relaxed">
-                Il reste <strong className="text-negative">{daysLeft} jour{daysLeft > 1 ? 's' : ''}</strong> avant la fin du mois &amp;{' '}
-                <strong className="text-positive">{fmt(perDay)}</strong> à dépenser par jour !
-              </p>
-            </div>
-          </div>
-
-          {/* Part des dépenses par rapport aux revenus */}
-          <div className="bg-[var(--bg-surface)] rounded-[20px] p-4">
-            <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-3">Part des dépenses par rapport aux revenus</p>
-            <DonutChart
-              data={{ Fixe: charges, Variable: variable, Courses: courses, Épargne: epargne }}
-              total={income}
-              centerLabel="Revenus"
-            />
-          </div>
-
           {/* Répartition par catégorie */}
-          <div className="bg-[var(--bg-surface)] rounded-[20px] p-4">
+          <div className="bg-[var(--bg-surface)] rounded-[var(--radius-card)] p-4">
             <p className="text-[15px] font-semibold text-[var(--text-primary)] mb-3">Répartition par catégorie</p>
             <DonutChart
               data={categoryData}

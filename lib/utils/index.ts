@@ -21,10 +21,11 @@ export function tileBg(color: string | null | undefined): string {
 }
 
 export function fmt(amount: number, currency = 'EUR'): string {
+  const hasCents = Math.round(Math.abs(amount) * 100) % 100 !== 0
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency,
-    minimumFractionDigits: 0,
+    minimumFractionDigits: hasCents ? 2 : 0,
     maximumFractionDigits: 2,
   }).format(amount)
 }
@@ -65,7 +66,8 @@ export function nextMonthKey(monthKey: string): string {
 export function defaultDateForMonth(monthKey: string): string {
   const today = new Date()
   const realMonthKey = getMonthKey(today)
-  if (monthKey === realMonthKey) return today.toISOString().slice(0, 10)
+  // Date locale (toISOString passerait en UTC : la veille entre minuit et 2 h à Paris)
+  if (monthKey === realMonthKey) return `${realMonthKey}-${String(today.getDate()).padStart(2, '0')}`
   const [year, month] = monthKey.split('-').map(Number)
   const daysInMonth = new Date(year, month, 0).getDate()
   const day = Math.min(today.getDate(), daysInMonth)

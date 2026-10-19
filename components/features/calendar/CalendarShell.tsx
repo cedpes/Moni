@@ -389,16 +389,16 @@ export default function CalendarShell({ workspaceId }: Props) {
       )}
 
       {/* FABs */}
-      {!readOnly && <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">
+      {!readOnly && <div className="fixed right-4 flex flex-col gap-2 z-40" style={{ bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}>
         <button onClick={() => openAdd('income')}
           className="w-12 h-12 bg-positive rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           aria-label="Ajouter un revenu">
           <span className="text-on-positive text-lg font-bold">+€</span>
         </button>
         <button onClick={() => openAdd('charge')}
-          className="w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+          className="w-14 h-14 bg-[var(--bg-surface-3)] border border-[var(--border-default)] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           aria-label="Ajouter une charge">
-          <Plus size={24} color="var(--accent-ink)" />
+          <Plus size={24} color="var(--text-primary)" />
         </button>
       </div>}
 

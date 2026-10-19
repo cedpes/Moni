@@ -228,9 +228,9 @@ export default function PlannedShell({ workspaceId, userId, categories }: Props)
 
       {/* FAB */}
       <button onClick={() => { setFLabel(''); setFAmount(''); setFCatId(''); setFRecurring(false); setShowModal(true) }}
-        className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
-          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-        <Plus size={24} color="var(--accent-ink)" />
+        className="fixed right-4 w-14 h-14 bg-[var(--bg-surface-3)] border border-[var(--border-default)] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 92px)' }}>
+        <Plus size={24} color="var(--text-primary)" />
       </button>
 
       {/* Modal */}

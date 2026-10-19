@@ -153,5 +153,12 @@ export function useMonthData(monthKey: string, workspaceId: string) {
 
   useEffect(() => { fetchData() }, [fetchData])
 
+  // Une opération ajoutée ailleurs (ajout rapide de la barre de navigation) : on recharge.
+  useEffect(() => {
+    const onChange = () => { fetchData() }
+    window.addEventListener('moni:data-changed', onChange)
+    return () => window.removeEventListener('moni:data-changed', onChange)
+  }, [fetchData])
+
   return { month, envelopes, transactions, planned, fixedItems, fixedItemStatuses, loading, error, refetch: fetchData }
 }
