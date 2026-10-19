@@ -8,6 +8,7 @@ import { fmt, getWeeksOfMonth, fixedItemAmountForWeek, defaultDateForMonth, tile
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
 import { useMonthLock } from '@/lib/utils/monthLock'
+import EditTransactionSheet, { fmtDay } from '@/components/features/transactions/EditTransactionSheet'
 import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info, CalendarRange } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -104,12 +105,18 @@ export default function DepensesShell({ workspaceId, userId, categories }: Props
 // ─────────────────────────────────────────────────────────
 // Onglet Courante : dépenses du quotidien (pas sur le calendrier)
 // ─────────────────────────────────────────────────────────
-function CouranteTab({ monthKey, month, envelopes, planned, transactions, fixedItems, loading, refetch }: {
+function CouranteTab({ monthKey, month, envelopes, planned, transactions, fixedItems, categories, loading, refetch }: {
   workspaceId: string; userId: string; monthKey: string
   month: any; envelopes: any[]; planned: any[]; transactions: any[]; fixedItems: any[]; categories: any[]; loading: boolean; refetch: () => void
 }) {
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editing, setEditing] = useState<any | null>(null)
   const [viewMode, setViewMode] = useState<'mensuel' | 'hebdomadaire'>('mensuel')
+  // Transaction issue d'un prévisionnel validé → id du prévisionnel, pour le garder synchronisé
+  const plannedByTx = useMemo(() => new Map<string, string>(
+    (planned ?? []).filter((p: any) => p.is_validated && p.validated_transaction_id)
+      .map((p: any) => [p.validated_transaction_id, p.id])
+  ), [planned])
 
   // Toutes les dépenses courantes = transactions hors charges fixes
   const courantes = useMemo(() => transactions
@@ -210,7 +217,7 @@ function CouranteTab({ monthKey, month, envelopes, planned, transactions, fixedI
             <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
               {courantes.map((t: any, i: number) => (
                 <TxRow key={t.id} t={t} isLast={i === courantes.length - 1}
-                  deleting={deleting === t.id} onDelete={() => deleteTransaction(t.id)} />
+                  deleting={deleting === t.id} onDelete={() => deleteTransaction(t.id)} onEdit={() => setEditing(t)} />
               ))}
             </div>
           ) : (
@@ -229,7 +236,7 @@ function CouranteTab({ monthKey, month, envelopes, planned, transactions, fixedI
                   ) : (
                     w.transactions.map((t: any, i: number) => (
                       <TxRow key={t.id} t={t} isLast={i === w.transactions.length - 1}
-                        deleting={deleting === t.id} onDelete={() => deleteTransaction(t.id)} />
+                        deleting={deleting === t.id} onDelete={() => deleteTransaction(t.id)} onEdit={() => setEditing(t)} />
                     ))
                   )}
                 </div>
@@ -239,23 +246,29 @@ function CouranteTab({ monthKey, month, envelopes, planned, transactions, fixedI
         </div>
       )}
 
+      <EditTransactionSheet tx={editing} monthKey={monthKey} mode="depense" categories={categories}
+        linkedPlannedId={editing ? plannedByTx.get(editing.id) ?? null : null}
+        onClose={() => setEditing(null)} onSaved={refetch} />
     </>
   )
 }
 
-function TxRow({ t, isLast, deleting, onDelete }: { t: any; isLast: boolean; deleting: boolean; onDelete: () => void }) {
+function TxRow({ t, isLast, deleting, onDelete, onEdit }: { t: any; isLast: boolean; deleting: boolean; onDelete: () => void; onEdit: () => void }) {
   const catName = t.categories?.name ?? 'Autre'
   const icon = t.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
   const bg = CAT_COLORS[catName] ?? 'var(--bg-surface-2)'
   return (
-    <div className={`flex items-center px-4 py-3 gap-3 ${!isLast ? 'border-b border-[var(--border-subtle)]' : ''}`}>
-      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: tileBg(bg) }}>{icon}</div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</p>
-        <p className="text-[12px] text-[var(--text-secondary)]">{catName} · {t.date}</p>
-      </div>
-      <p className="text-[15px] font-semibold text-negative flex-shrink-0">−{fmt(t.amount)}</p>
-      <button onClick={onDelete} disabled={deleting}
+    <div className={`flex items-center pr-4 gap-2 ${!isLast ? 'border-b border-[var(--border-subtle)]' : ''}`}>
+      <button onClick={onEdit} aria-label={`Modifier ${t.label}, ${fmt(t.amount)}`}
+        className="flex-1 min-w-0 flex items-center gap-3 pl-4 py-3 text-left active:bg-[var(--surface-highlight)] transition-colors">
+        <span className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: tileBg(bg) }}>{icon}</span>
+        <span className="flex-1 min-w-0">
+          <span className="block text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</span>
+          <span className="block text-[12px] text-[var(--text-secondary)]">{catName} · {fmtDay(t.date)}</span>
+        </span>
+        <span className="text-[15px] font-semibold text-negative flex-shrink-0">−{fmt(t.amount)}</span>
+      </button>
+      <button onClick={onDelete} disabled={deleting} aria-label={`Supprimer la dépense ${t.label}`}
         className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
         {deleting ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
       </button>

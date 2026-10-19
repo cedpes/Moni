@@ -6,6 +6,7 @@ import { createClient } from '@/lib/pocketbase/client'
 import { fmt, defaultDateForMonth, isDateInMonth, tileBg } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import BottomSheet from '@/components/ui/BottomSheet'
+import EditTransactionSheet, { fmtDay, dayOf } from '@/components/features/transactions/EditTransactionSheet'
 import { Plus, X, Loader2, Settings2, Trash2 } from 'lucide-react'
 import { useMonthData } from '@/hooks/useMonthData'
 
@@ -29,10 +30,6 @@ const DEFAULT_STORES: Store[] = [
 const STORE_EMOJIS = ['🛒', '🏪', '🛍️', '🧺', '🥖', '🥩', '🐟', '🧀', '🍷', '🥦', '🌿', '💊', '🐾', '🏬']
 const STORE_COLORS = ['#fff3cd', '#d4edda', '#cce5ff', '#fde8d8', '#e2d9f3', '#cff4fc', '#d4f5e2', '#fef0f5']
 const MAX_NAME = 40
-
-function fmtShort(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
-}
 
 const inputCls = 'w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text'
 
@@ -82,6 +79,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editing, setEditing] = useState<any | null>(null)
   const [fLabel, setFLabel] = useState('')
   const [fAmount, setFAmount] = useState('')
   const [fDate, setFDate] = useState(() => defaultDateForMonth(monthKey))
@@ -103,7 +101,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
   const monthEnd = `${year}-${String(monthNum).padStart(2, '0')}-${String(new Date(year, monthNum, 0).getDate()).padStart(2, '0')}`
 
   const monthTransactions = useMemo(() => transactions
-    .filter((t: any) => t.date >= monthStart && t.date <= monthEnd)
+    .filter((t: any) => dayOf(t.date) >= monthStart && dayOf(t.date) <= monthEnd)
     .sort((a: any, b: any) => b.date.localeCompare(a.date)), [transactions, monthStart, monthEnd])
 
   const monthTotal = useMemo(() => monthTransactions
@@ -297,14 +295,17 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
             ) : monthTransactions.map((t: any, i: number) => {
               const s = storeByName(t.label)
               return (
-                <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < monthTransactions.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
-                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0"
-                    style={{ background: tileBg(s?.color ?? null) }}>{s?.icon ?? '🛒'}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</p>
-                    <p className="text-[12px] text-[var(--text-secondary)]">{fmtShort(t.date)}</p>
-                  </div>
-                  <p className="text-[15px] font-semibold text-[var(--text-primary)] flex-shrink-0">{fmt(t.amount)}</p>
+                <div key={t.id} className={`flex items-center pr-4 gap-2 ${i < monthTransactions.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
+                  <button onClick={() => setEditing(t)} aria-label={`Modifier le passage ${t.label}, ${fmt(t.amount)}`}
+                    className="flex-1 min-w-0 flex items-center gap-3 pl-4 py-3 text-left active:bg-[var(--surface-highlight)] transition-colors">
+                    <span className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0"
+                      style={{ background: tileBg(s?.color ?? null) }}>{s?.icon ?? '🛒'}</span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[15px] font-medium text-[var(--text-primary)] truncate">{t.label}</span>
+                      <span className="block text-[12px] text-[var(--text-secondary)]">{fmtDay(t.date)}</span>
+                    </span>
+                    <span className="text-[15px] font-semibold text-[var(--text-primary)] flex-shrink-0">{fmt(t.amount)}</span>
+                  </button>
                   <button onClick={() => deleteTransaction(t.id)} disabled={deleting === t.id} aria-label={`Supprimer le passage ${t.label}`}
                     className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
                     {deleting === t.id ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
@@ -379,6 +380,10 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
           </button>
         </div>
       </BottomSheet>
+
+      <EditTransactionSheet tx={editing} monthKey={monthKey} mode="courses"
+        stores={allStores.map(st => ({ name: st.name, icon: st.icon }))}
+        onClose={() => setEditing(null)} onSaved={refetch} />
 
       {/* Réglages : budget mensuel + mes magasins */}
       <BottomSheet open={showSettings} onClose={closeSettings} label="Réglages des courses">
