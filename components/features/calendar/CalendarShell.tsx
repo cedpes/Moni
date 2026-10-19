@@ -84,8 +84,8 @@ export default function CalendarShell({ workspaceId }: Props) {
     try {
       const pb = createClient()
       const [fixedItems, monthStatuses] = await Promise.all([
-        pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true`, sort: 'due_day' }),
-        pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
+        pb.collection('fixed_items').getFullList({ filter: pb.filter('workspace_id={:p0} && is_active=true', { p0: workspaceId }), sort: 'due_day' }),
+        pb.collection('fixed_item_status').getFullList({ filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: monthKey }) }),
       ])
       setItems(filterFixedItemsForMonth((fixedItems ?? []) as any, monthKey))
       setStatuses((monthStatuses ?? []) as any)

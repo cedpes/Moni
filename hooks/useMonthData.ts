@@ -29,7 +29,7 @@ export function useMonthData(monthKey: string, workspaceId: string) {
 
       // Chercher ou créer le mois
       const months = await pb.collection('months').getFullList({
-        filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"`,
+        filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: monthKey }),
       })
 
       let m: any = months[0] ?? null
@@ -58,11 +58,11 @@ export function useMonthData(monthKey: string, workspaceId: string) {
 
       // Charger tout en parallèle
       const [envs, txs, pln, allFixed, statuses] = await Promise.all([
-        pb.collection('envelopes').getFullList({ filter: `month_id="${m.id}"`, sort: 'position' }),
-        pb.collection('transactions').getFullList({ filter: `month_id="${m.id}"`, sort: '-date', expand: 'category_id' }),
-        pb.collection('planned_expenses').getFullList({ filter: `month_id="${m.id}"`, sort: 'position', expand: 'category_id' }),
-        pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true` }),
-        pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
+        pb.collection('envelopes').getFullList({ filter: pb.filter('month_id={:p0}', { p0: m.id }), sort: 'position' }),
+        pb.collection('transactions').getFullList({ filter: pb.filter('month_id={:p0}', { p0: m.id }), sort: '-date', expand: 'category_id' }),
+        pb.collection('planned_expenses').getFullList({ filter: pb.filter('month_id={:p0}', { p0: m.id }), sort: 'position', expand: 'category_id' }),
+        pb.collection('fixed_items').getFullList({ filter: pb.filter('workspace_id={:p0} && is_active=true', { p0: workspaceId }) }),
+        pb.collection('fixed_item_status').getFullList({ filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: monthKey }) }),
       ])
 
       // Items fixes du mois : copie figée si le mois est clôturé, sinon les versions valables ce mois-ci

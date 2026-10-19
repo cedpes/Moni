@@ -153,7 +153,7 @@ export async function saveFixedItemVersioned(
 
   // Reporter l'éventuel statut "reçu" du mois courant sur la nouvelle version
   const statuses = await pb.collection('fixed_item_status').getFullList({
-    filter: `fixed_item_id="${editItem.id}" && month_key>="${monthKey}"`,
+    filter: pb.filter('fixed_item_id={:p0} && month_key>={:p1}', { p0: editItem.id, p1: monthKey }),
   })
   await Promise.all(statuses.map(s => pb.collection('fixed_item_status').update(s.id, { fixed_item_id: created.id })))
 

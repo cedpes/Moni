@@ -71,16 +71,16 @@ export default function BilanShell({ workspaceId }: Props) {
       try {
         const pb = createClient()
         const [monthRecords, fixedItems, transactions] = await Promise.all([
-          pb.collection('months').getFullList({ filter: `workspace_id="${workspaceId}" && month_key~"${year}-"`, requestKey: null }),
-          pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true`, requestKey: null }),
+          pb.collection('months').getFullList({ filter: pb.filter('workspace_id={:p0} && month_key~{:p1}', { p0: workspaceId, p1: `${year}-` }), requestKey: null }),
+          pb.collection('fixed_items').getFullList({ filter: pb.filter('workspace_id={:p0} && is_active=true', { p0: workspaceId }), requestKey: null }),
           pb.collection('transactions').getFullList({
-            filter: `workspace_id="${workspaceId}" && date>="${year}-01-01" && date<="${year}-12-31 23:59:59"`,
+            filter: pb.filter('workspace_id={:p0} && date>={:p1} && date<={:p2}', { p0: workspaceId, p1: `${year}-01-01`, p2: `${year}-12-31 23:59:59` }),
             fields: 'id,date,amount,envelope_slug', requestKey: null,
           }),
         ])
         const envelopes = monthRecords.length
           ? await pb.collection('envelopes').getFullList({
-              filter: `slug="epargne" && (${monthRecords.map(m => `month_id="${m.id}"`).join(' || ')})`, requestKey: null,
+              filter: `slug="epargne" && (${monthRecords.map(m => pb.filter('month_id={:id}', { id: m.id })).join(' || ')})`, requestKey: null,
             })
           : []
         if (!cancelled) { setData({ year, monthRecords, fixedItems, envelopes, transactions }); setError(null) }

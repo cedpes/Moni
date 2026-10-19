@@ -7,10 +7,18 @@ import { createClient } from '@/lib/pocketbase/client'
 import { loginSchema } from '@/lib/validations'
 import { Loader2 } from 'lucide-react'
 
+// N'accepte qu'un chemin interne ("/budget", "/depenses?x=1"…) pour éviter la redirection
+// vers un site externe ("https://…", "//evil.com", "/\evil.com", "javascript:…").
+function safeRedirect(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return '/budget'
+  if (/[\u0000-\u001f]/.test(value)) return '/budget'
+  return value
+}
+
 export default function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/budget'
+  const redirectTo = safeRedirect(searchParams.get('redirectTo'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -58,8 +66,7 @@ export default function LoginForm() {
             Se connecter
           </button>
         </form>
-        <div className="flex justify-between mt-6 text-sm">
-          <Link href="/reset-password" className="text-[#007aff]">Mot de passe oublié</Link>
+        <div className="flex justify-end mt-6 text-sm">
           <Link href="/register" className="text-[#007aff]">Créer un compte</Link>
         </div>
       </div>

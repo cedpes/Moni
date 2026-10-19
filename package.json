@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:rules": "node tests/pocketbase/api-rules.test.mjs"
   },
   "dependencies": {
     "pocketbase": "^0.26.2",

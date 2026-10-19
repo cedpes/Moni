@@ -48,7 +48,7 @@ export default function EpargneShell({ workspaceId }: Props) {
     try {
       const pb = createClient()
       const items = await pb.collection('savings_goals').getFullList({
-        filter: `workspace_id="${workspaceId}" && is_active=true`,
+        filter: pb.filter('workspace_id={:p0} && is_active=true', { p0: workspaceId }),
         sort: '-created',
       })
       // Trie par échéance la plus proche en premier ; les objectifs sans date passent à la fin.

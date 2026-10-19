@@ -69,8 +69,8 @@ export default function RevenusShell({ workspaceId }: Props) {
     try {
       const pb = createClient()
       const [incomes, monthStatuses] = await Promise.all([
-        pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && type="income" && is_active=true`, sort: 'due_day' }),
-        pb.collection('fixed_item_status').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` }),
+        pb.collection('fixed_items').getFullList({ filter: pb.filter('workspace_id={:p0} && type="income" && is_active=true', { p0: workspaceId }), sort: 'due_day' }),
+        pb.collection('fixed_item_status').getFullList({ filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: monthKey }) }),
       ])
       // Seuls les revenus valables pour le mois affiché (historique préservé)
       setItems(filterFixedItemsForMonth((incomes ?? []) as any, monthKey))

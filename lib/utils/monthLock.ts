@@ -42,7 +42,7 @@ export function shouldAutoClose(month: any, monthKey: string): boolean {
 }
 
 export async function closeMonth(pb: PocketBase, month: any, workspaceId: string, monthKey: string) {
-  const live = await pb.collection('fixed_items').getFullList({ filter: `workspace_id="${workspaceId}" && is_active=true` })
+  const live = await pb.collection('fixed_items').getFullList({ filter: pb.filter('workspace_id={:p0} && is_active=true', { p0: workspaceId }) })
   const snapshot = toSnapshot(filterFixedItemsForMonth(live as any[], monthKey))
   return pb.collection('months').update(month.id, {
     is_closed: true,
@@ -53,7 +53,7 @@ export async function closeMonth(pb: PocketBase, month: any, workspaceId: string
 
 // Mois (record) encore ouvert pour cette clé, ou null s'il n'existe pas / est déjà clôturé
 export async function getOpenMonth(pb: PocketBase, workspaceId: string, monthKey: string) {
-  const list = await pb.collection('months').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` })
+  const list = await pb.collection('months').getFullList({ filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: monthKey }) })
   const month = list[0] ?? null
   return month && !isMonthClosed(month) ? month : null
 }
@@ -76,7 +76,7 @@ export function useMonthLock(workspaceId: string, monthKey: string) {
   const refresh = useCallback(async () => {
     try {
       const pb = createClient()
-      const list = await pb.collection('months').getFullList({ filter: `workspace_id="${workspaceId}" && month_key="${monthKey}"` })
+      const list = await pb.collection('months').getFullList({ filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: monthKey }) })
       setState({ key: `${workspaceId}:${monthKey}`, month: list[0] ?? null })
     } catch (err: any) {
       if (err?.isAbort) return

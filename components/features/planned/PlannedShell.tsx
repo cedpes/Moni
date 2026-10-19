@@ -110,11 +110,11 @@ export default function PlannedShell({ workspaceId, userId, categories }: Props)
     d.setMonth(d.getMonth() - 1)
     const prevKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     const prevMonths = await pb.collection('months').getFullList({
-      filter: `workspace_id="${workspaceId}" && month_key="${prevKey}"`,
+      filter: pb.filter('workspace_id={:p0} && month_key={:p1}', { p0: workspaceId, p1: prevKey }),
     })
     if (!prevMonths?.[0]) return
     const prevPlanned = await pb.collection('planned_expenses').getFullList({
-      filter: `month_id="${prevMonths[0].id}" && is_recurring=true`,
+      filter: pb.filter('month_id={:p0} && is_recurring=true', { p0: prevMonths[0].id }),
     })
     if (!prevPlanned?.length) return
     await Promise.all(prevPlanned.map((p: any, i: number) =>

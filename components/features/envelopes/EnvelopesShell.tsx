@@ -45,7 +45,7 @@ export default function EnvelopesShell({ workspaceId, userId, categories }: Prop
     const pb = createClient()
     try {
       const goals = await pb.collection('savings_goals').getFullList({
-        filter: `workspace_id="${workspaceId}" && is_active=true`,
+        filter: pb.filter('workspace_id={:p0} && is_active=true', { p0: workspaceId }),
         sort: '-created',
       })
       setActiveGoal(goals?.[0] ?? null)

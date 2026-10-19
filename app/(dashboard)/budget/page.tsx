@@ -8,7 +8,7 @@ export default async function BudgetPage() {
   const user = pb.authStore.record
 
   const memberships = await pb.collection('workspace_members').getFullList({
-    filter: `user_id="${user.id}"`,
+    filter: pb.filter('user_id={:p0}', { p0: user.id }),
   })
   const workspaceId: string | null = memberships[0]?.workspace_id ?? null
   if (!workspaceId) redirect('/login')

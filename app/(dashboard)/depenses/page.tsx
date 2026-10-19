@@ -8,13 +8,13 @@ export default async function DepensesPage() {
   const user = pb.authStore.record
 
   const memberships = await pb.collection('workspace_members').getFullList({
-    filter: `user_id="${user.id}"`,
+    filter: pb.filter('user_id={:p0}', { p0: user.id }),
   })
   const workspaceId: string | null = memberships[0]?.workspace_id ?? null
   if (!workspaceId) redirect('/login')
 
   let categories = await pb.collection('categories').getFullList({
-    filter: `workspace_id="${workspaceId}"`,
+    filter: pb.filter('workspace_id={:p0}', { p0: workspaceId }),
     sort: 'name',
   })
 
@@ -76,7 +76,7 @@ export default async function DepensesPage() {
     })
     try {
       categories = await pb.collection('categories').getFullList({
-        filter: `workspace_id="${workspaceId}"`,
+        filter: pb.filter('workspace_id={:p0}', { p0: workspaceId }),
         sort: 'name',
       })
     } catch (err) {
