@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
-import { fmt, fixedItemMonthlyAmount } from '@/lib/utils'
+import { fmt, fixedItemMonthlyAmount, nextPayday } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import DonutChart from '@/components/ui/DonutChart'
 import { Wallet, CreditCard, Mail, PiggyBank, Loader2, Home, ShoppingCart } from 'lucide-react'
@@ -66,7 +66,12 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
 
     const today = new Date()
     const isCurrentMonth = today.getFullYear() === y && today.getMonth() + 1 === m
-    const daysLeft = isCurrentMonth ? Math.max(1, daysInMonth - today.getDate() + 1) : daysInMonth
+    // Mois en cours : jours jusqu'à l'arrivée du salaire (revenu mensuel principal),
+    // à défaut jusqu'à la fin du mois. Autres mois : nombre de jours du mois.
+    const payday = isCurrentMonth ? nextPayday(fixedItems ?? [], today) : null
+    const daysLeft = payday
+      ? payday.days
+      : isCurrentMonth ? Math.max(1, daysInMonth - today.getDate() + 1) : daysInMonth
     const perDay = restant > 0 ? restant / daysLeft : 0
 
     // Répartition par catégorie : vue complète du budget. Fixe, Courses et Épargne sont
@@ -89,12 +94,12 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
     const categoryTotal = Object.values(categoryData).reduce((s, v) => s + v, 0)
 
     return {
-      income, charges, totalCharges, variable, courses, epargne, restant, daysLeft, perDay,
+      income, charges, totalCharges, variable, courses, epargne, restant, daysLeft, perDay, payday,
       categoryData, categoryTotal,
     }
   }, [month, envelopes, transactions, planned, fixedItems, fixedItemStatuses, monthKey, tab])
 
-  const { income, charges, variable, courses, epargne, restant, daysLeft, perDay, categoryData, categoryTotal } = metrics
+  const { income, charges, variable, courses, epargne, restant, daysLeft, perDay, payday, categoryData, categoryTotal } = metrics
 
   const engaged = charges + variable + courses + epargne
   const usedPct = income > 0 ? Math.min(100, Math.max(0, (engaged / income) * 100)) : (engaged > 0 ? 100 : 0)
@@ -154,7 +159,12 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
                 <div className="h-full rounded-full transition-all" style={{ width: `${usedPct}%`, background: 'var(--hero-bar)' }} />
               </div>
               <div className="flex justify-between text-[13px] font-semibold" style={{ color: 'var(--hero-muted)' }}>
-                <span>{daysLeft} jour{daysLeft > 1 ? 's' : ''} restant{daysLeft > 1 ? 's' : ''}</span>
+                <span>
+                  {daysLeft} jour{daysLeft > 1 ? 's' : ''}{' '}
+                  {payday
+                    ? <>avant le salaire · {payday.date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}</>
+                    : <>restant{daysLeft > 1 ? 's' : ''}</>}
+                </span>
                 <span>{restant > 0 ? <>≈ {fmt(perDay)} / jour</> : 'Plus de marge ce mois-ci'}</span>
               </div>
             </div>
