@@ -1,62 +1,140 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Moni — charte « Encre & citron vert »
+   Les noms historiques (--bg-*, --text-*, --border-*, --chart-*) sont conservés
+   pour ne rien casser ; les nouveaux jetons (--accent, --positive, --cat-*…)
+   servent aux étapes suivantes de la refonte.
+   ========================================================================== */
+
 :root {
-  --font-sans: 'Outfit', system-ui, sans-serif;
+  --moni-font-sans: var(--font-manrope), system-ui, sans-serif;
+  --moni-font-display: var(--font-bricolage), var(--font-manrope), system-ui, sans-serif;
 
   /* Thème sombre (par défaut) */
-  --bg-app: #000000;
-  --bg-surface: #1c1c1e;
-  --bg-surface-2: #2c2c2e;
-  --bg-surface-3: #3a3a3c;
-  --text-primary: #ffffff;
-  --text-secondary: #8e8e93;
-  --text-tertiary: #5a5a5e;
-  --text-body: #d1d1d6;
+  --bg-app: #0d0e11;
+  --bg-surface: #17191e;
+  --bg-surface-2: #22252b;
+  --bg-surface-3: #2e3138;
+  --text-primary: #f4f4f2;
+  --text-secondary: #9c9fa8;
+  --text-tertiary: #6b6e77;
+  --text-body: #c9cbd1;
   --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-default: rgba(255, 255, 255, 0.1);
-  --surface-highlight: rgba(255, 255, 255, 0.05);
-  --surface-highlight-2: rgba(255, 255, 255, 0.1);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --surface-highlight: rgba(255, 255, 255, 0.04);
+  --surface-highlight-2: rgba(255, 255, 255, 0.08);
   --overlay: rgba(0, 0, 0, 0.6);
-  --header-blur-bg: rgba(0, 0, 0, 0.9);
-  /* Graphiques (palette validée daltonisme, fond sombre #1c1c1e) */
-  --chart-income: #3b82f6;
-  --chart-expense: #ea580c;
-  --chart-savings: #0d9488;
+  --header-blur-bg: rgba(13, 14, 17, 0.9);
+
+  /* Accent unique : reste à vivre, action principale, onglet actif */
+  --accent: #c8f169;          /* fond d'accent */
+  --accent-ink: #0d0e11;      /* texte posé sur --accent */
+  --accent-text: #c8f169;     /* accent utilisé comme couleur de texte/icône */
+  --accent-soft: rgba(200, 241, 105, 0.12);
+
+  /* Sémantique (sarcelle / orange : lisible en cas de daltonisme) */
+  --positive: #2dd4bf;
+  --negative: #fb923c;
+  --positive-soft: rgba(45, 212, 191, 0.14);
+  --negative-soft: rgba(251, 146, 60, 0.14);
+
+  /* Catégories de données */
+  --cat-revenus: #60a5fa;
+  --cat-fixe: #8b93ff;
+  --cat-variable: #fb923c;
+  --cat-courses: #f5c451;
+  --cat-epargne: #2dd4bf;
+
+  /* Graphiques (alias historiques) */
+  --chart-income: var(--cat-revenus);
+  --chart-expense: var(--cat-variable);
+  --chart-savings: var(--cat-epargne);
   --chart-grid: rgba(255, 255, 255, 0.08);
+
+  /* Rayons */
+  --radius-icon: 12px;
+  --radius-row: 20px;
+  --radius-card: 24px;
+  --radius-hero: 28px;
 }
 
 [data-theme="light"] {
-  --bg-app: #f5f5f7;
+  --bg-app: #f4f3ee;
   --bg-surface: #ffffff;
-  --bg-surface-2: #f2f2f7;
-  --bg-surface-3: #e5e5ea;
-  --text-primary: #1d1d1f;
-  --text-secondary: #86868b;
-  --text-tertiary: #aeaeb2;
-  --text-body: #3a3a3c;
+  --bg-surface-2: #eeede6;
+  --bg-surface-3: #e2e1d9;
+  --text-primary: #15161a;
+  --text-secondary: #5f626b;
+  --text-tertiary: #8a8d95;
+  --text-body: #3a3c42;
   --border-subtle: rgba(0, 0, 0, 0.05);
-  --border-default: rgba(0, 0, 0, 0.1);
-  --surface-highlight: rgba(0, 0, 0, 0.035);
+  --border-default: rgba(0, 0, 0, 0.08);
+  --surface-highlight: rgba(0, 0, 0, 0.03);
   --surface-highlight-2: rgba(0, 0, 0, 0.06);
   --overlay: rgba(0, 0, 0, 0.4);
-  --header-blur-bg: rgba(255, 255, 255, 0.9);
-  /* Graphiques (palette validée daltonisme, fond clair #ffffff) */
-  --chart-income: #2563eb;
-  --chart-expense: #ea580c;
-  --chart-savings: #0d9488;
+  --header-blur-bg: rgba(244, 243, 238, 0.9);
+
+  /* En clair, l'accent citron sert de fond sur l'encre ; en texte on prend un vert foncé lisible */
+  --accent: #c8f169;
+  --accent-ink: #15161a;
+  --accent-text: #3f6212;
+  --accent-soft: #e7f5c4;
+
+  --positive: #0f766e;
+  --negative: #c2410c;
+  --positive-soft: #d5f2ee;
+  --negative-soft: #fde6d6;
+
+  --cat-revenus: #2563eb;
+  --cat-fixe: #4f5bd5;
+  --cat-variable: #ea580c;
+  --cat-courses: #d4a017;
+  --cat-epargne: #0d9488;
+
   --chart-grid: rgba(0, 0, 0, 0.07);
 }
 
+/* Expose les jetons à Tailwind v4 : bg-accent, text-positive, font-display… */
+@theme inline {
+  --font-sans: var(--moni-font-sans);
+  --font-display: var(--moni-font-display);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-cat-revenus: var(--cat-revenus);
+  --color-cat-fixe: var(--cat-fixe);
+  --color-cat-variable: var(--cat-variable);
+  --color-cat-courses: var(--cat-courses);
+  --color-cat-epargne: var(--cat-epargne);
+}
+
 body {
-  font-family: var(--font-sans);
+  font-family: var(--moni-font-sans);
   background: var(--bg-app);
+  color: var(--text-primary);
+  /* Chiffres à chasse fixe : les montants s'alignent en colonne */
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.2s ease;
 }
 
+h1, .font-display {
+  font-family: var(--moni-font-display);
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+}
+
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--text-body); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--text-tertiary); border-radius: 2px; }
 
 * { -webkit-tap-highlight-color: transparent; }
