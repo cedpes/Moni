@@ -22,7 +22,7 @@ export default function MonthPicker() {
       >
         {monthLabel}
         {!isCurrentMonth && (
-          <span className="w-1.5 h-1.5 rounded-full bg-[#a78bfa] ml-0.5" />
+          <span className="w-1.5 h-1.5 rounded-full bg-accent ml-0.5" />
         )}
       </button>
 

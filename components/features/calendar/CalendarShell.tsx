@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt } from '@/lib/utils'
+import { fmt, tileBg } from '@/lib/utils'
 import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
@@ -226,10 +226,10 @@ export default function CalendarShell({ workspaceId }: Props) {
 
         {/* Pills résumé */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium bg-[#f87171]/15 text-[#f87171]">
+          <span className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium bg-negative/15 text-negative">
             Charges {fmt(totalCharges)}
           </span>
-          <span className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium bg-[#34d399]/15 text-[#34d399]">
+          <span className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium bg-positive/15 text-positive">
             Revenus {fmt(totalIncome)}
           </span>
           {paidCharges > 0 && (
@@ -238,7 +238,7 @@ export default function CalendarShell({ workspaceId }: Props) {
             </span>
           )}
           {lateCharges.length > 0 && (
-            <span className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium bg-[#fbbf24]/15 text-[#fbbf24]">
+            <span className="flex-shrink-0 px-3 py-1 rounded-full text-[12px] font-medium bg-warning/15 text-warning">
               Reste {fmt(totalCharges - paidCharges)}
             </span>
           )}
@@ -255,7 +255,7 @@ export default function CalendarShell({ workspaceId }: Props) {
           <div className="bg-[var(--bg-surface)] rounded-[20px] p-3">
             <div className="grid grid-cols-7 mb-1">
               {['L','M','M','J','V','S','D'].map((d, i) => (
-                <div key={i} className={`text-center text-[11px] font-semibold py-1 ${i >= 5 ? 'text-[#f87171]' : 'text-[var(--text-secondary)]'}`}>{d}</div>
+                <div key={i} className={`text-center text-[11px] font-semibold py-1 ${i >= 5 ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-0.5">
@@ -273,18 +273,18 @@ export default function CalendarShell({ workspaceId }: Props) {
                 return (
                   <div key={day} onClick={() => dayItems.length ? setSelectedDay(isSelected ? null : day) : null}
                     className={`rounded-[8px] p-0.5 flex flex-col items-center min-h-[52px] transition-colors ${dayItems.length ? 'cursor-pointer active:bg-[var(--bg-surface-2)]' : ''} ${isSelected ? 'bg-[var(--bg-surface-2)]' : ''}`}>
-                    <div className={`w-6 h-6 flex items-center justify-center rounded-full text-[12px] font-medium mb-0.5 ${isToday ? 'bg-[#3b82f6] text-[var(--text-primary)]' : isPast ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
+                    <div className={`w-6 h-6 flex items-center justify-center rounded-full text-[12px] font-medium mb-0.5 ${isToday ? 'bg-accent text-accent-ink' : isPast ? 'text-[var(--text-tertiary)]' : 'text-[var(--text-primary)]'}`}>
                       {day}
                     </div>
                     <div className="flex flex-col gap-0.5 w-full">
                       {dayCharges.slice(0, 1).map(c => (
                         <div key={c.id} className={`w-full rounded-[3px] text-[8px] font-semibold px-0.5 leading-[1.4] truncate
-                          ${isDone(c.id) ? 'bg-[#34d399]/20 text-[#34d399]' : getDayStatus(c) === 'late' ? 'bg-[#f87171]/20 text-[#f87171]' : 'bg-[#fbbf24]/20 text-[#fbbf24]'}`}>
+                          ${isDone(c.id) ? 'bg-positive/20 text-positive' : getDayStatus(c) === 'late' ? 'bg-negative/20 text-negative' : 'bg-warning/20 text-warning'}`}>
                           {c.icon} {c.name.slice(0, 4)}
                         </div>
                       ))}
                       {dayIncomes.slice(0, 1).map(c => (
-                        <div key={c.id} className={`w-full rounded-[3px] text-[8px] font-semibold px-0.5 leading-[1.4] truncate bg-[#60a5fa]/20 text-[#60a5fa]`}>
+                        <div key={c.id} className={`w-full rounded-[3px] text-[8px] font-semibold px-0.5 leading-[1.4] truncate bg-cat-revenus/20 text-cat-revenus`}>
                           {c.icon} {c.name.slice(0, 4)}
                         </div>
                       ))}
@@ -313,16 +313,16 @@ export default function CalendarShell({ workspaceId }: Props) {
                 return (
                   <div key={item.id} className={`flex items-center px-4 py-3.5 gap-3 ${i < selectedItems.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
                     <div className="w-10 h-10 rounded-[11px] flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: item.color ?? 'var(--bg-surface-2)' }}>{item.icon}</div>
+                      style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>{item.icon}</div>
                     <div className="flex-1">
                       <p className="text-[15px] font-medium text-[var(--text-primary)]">{item.name}</p>
-                      <p className={`text-[12px] font-medium ${item.type === 'income' ? 'text-[#34d399]' : done ? 'text-[#34d399]' : status === 'late' ? 'text-[#f87171]' : 'text-[var(--text-secondary)]'}`}>
+                      <p className={`text-[12px] font-medium ${item.type === 'income' ? 'text-positive' : done ? 'text-positive' : status === 'late' ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
                         {item.type === 'income' ? '+' : '−'}{fmt(item.amount)}
                       </p>
                     </div>
                     <button onClick={() => toggleDone(item)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : status === 'late' ? 'bg-[#f87171]/15 border border-[#f87171]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
-                      <Check size={15} color={done ? 'white' : status === 'late' ? '#f87171' : 'var(--text-tertiary)'} strokeWidth={2.5} />
+                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-positive' : status === 'late' ? 'bg-negative/15 border border-negative' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
+                      <Check size={15} color={done ? 'var(--on-positive)' : status === 'late' ? 'var(--negative)' : 'var(--text-tertiary)'} strokeWidth={2.5} />
                     </button>
                   </div>
                 )
@@ -349,10 +349,10 @@ export default function CalendarShell({ workspaceId }: Props) {
                 return (
                   <div key={item.id} className={`flex items-center px-4 py-3.5 gap-3 ${i < displayItems.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
                     <div className="w-10 h-10 rounded-[11px] flex items-center justify-center text-xl flex-shrink-0"
-                      style={{ background: item.color ?? 'var(--bg-surface-2)' }}>{item.icon}</div>
+                      style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>{item.icon}</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[15px] font-medium text-[var(--text-primary)]">{item.name}</p>
-                      <p className={`text-[12px] font-medium ${done ? 'text-[#34d399]' : status === 'late' ? 'text-[#f87171]' : 'text-[var(--text-secondary)]'}`}>
+                      <p className={`text-[12px] font-medium ${done ? 'text-positive' : status === 'late' ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
                         {item.type === 'charge' && item.category ? `${CATEGORIES.find(c => c.id === item.category)?.icon ?? ''} ${item.category} · ` : ''}
                         Le {item.due_day < 0 ? `fin du mois − ${Math.abs(item.due_day)}j (${realDay(item.due_day)})` : item.due_day} · {item.type === 'income' ? '+' : '−'}{fmt(item.amount)}
                         {done ? ' · ✓' : status === 'late' ? ' · En retard' : ''}
@@ -370,8 +370,8 @@ export default function CalendarShell({ workspaceId }: Props) {
                       </button>
                       </>)}
                       <button onClick={() => toggleDone(item)}
-                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
-                        <Check size={13} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
+                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${done ? 'bg-positive' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
+                        <Check size={13} color={done ? 'var(--on-positive)' : 'var(--text-tertiary)'} strokeWidth={2.5} />
                       </button>
                     </div>
                   </div>
@@ -391,14 +391,14 @@ export default function CalendarShell({ workspaceId }: Props) {
       {/* FABs */}
       {!readOnly && <div className="fixed bottom-20 right-4 flex flex-col gap-2 z-40">
         <button onClick={() => openAdd('income')}
-          className="w-12 h-12 bg-[#34c759] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+          className="w-12 h-12 bg-positive rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           aria-label="Ajouter un revenu">
-          <span className="text-[var(--text-primary)] text-lg font-bold">+€</span>
+          <span className="text-on-positive text-lg font-bold">+€</span>
         </button>
         <button onClick={() => openAdd('charge')}
-          className="w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+          className="w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           aria-label="Ajouter une charge">
-          <Plus size={24} color="white" />
+          <Plus size={24} color="var(--accent-ink)" />
         </button>
       </div>}
 
@@ -420,14 +420,14 @@ export default function CalendarShell({ workspaceId }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                  <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder={fType === 'charge' ? 'Netflix, Loyer…' : 'Salaire, Freelance…'}
                     value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
@@ -446,13 +446,13 @@ export default function CalendarShell({ workspaceId }: Props) {
                 </div>
                 {fDayMode === 'fixed' ? (
                   <input type="number" min="1" max="31"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder="Ex : 1 pour le 1er du mois" value={fDay} onChange={e => setFDay(e.target.value)} />
                 ) : (
                   <div className="flex items-center gap-2">
                     <span className="text-[14px] text-[var(--text-secondary)]">Fin du mois −</span>
                     <input type="number" min="0" max="15"
-                      className="w-20 h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                      className="w-20 h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                       placeholder="2" value={fDay} onChange={e => setFDay(e.target.value)} />
                     <span className="text-[14px] text-[var(--text-secondary)]">jours</span>
                   </div>
@@ -472,7 +472,7 @@ export default function CalendarShell({ workspaceId }: Props) {
                   <div className="grid grid-cols-3 gap-2">
                     {CATEGORIES.map(cat => (
                       <button key={cat.id} onClick={() => setFCategory(cat.id)}
-                        className={`h-10 rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-medium transition-all border ${fCategory === cat.id ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
+                        className={`h-10 rounded-[10px] flex items-center justify-center gap-1.5 text-[12px] font-medium transition-all border ${fCategory === cat.id ? 'border-accent-text bg-accent-soft text-accent-text' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
                         <span>{cat.icon}</span>
                         <span className="truncate">{cat.id}</span>
                       </button>
@@ -485,8 +485,8 @@ export default function CalendarShell({ workspaceId }: Props) {
                 <div className="flex flex-wrap gap-2">
                   {(fType === 'charge' ? CHARGE_ICONS : INCOME_ICONS).map(icon => (
                     <button key={icon} onClick={() => setFIcon(icon)}
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#3b82f6]' : ''}`}
-                      style={{ background: fColor }}>{icon}</button>
+                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-accent-text' : ''}`}
+                      style={{ background: tileBg(fColor) }}>{icon}</button>
                   ))}
                 </div>
               </div>
@@ -495,13 +495,13 @@ export default function CalendarShell({ workspaceId }: Props) {
                 <div className="flex gap-2">
                   {COLORS.map(color => (
                     <button key={color} onClick={() => setFColor(color)}
-                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-[#3b82f6]' : ''}`}
-                      style={{ background: color }} />
+                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-accent-text' : ''}`}
+                      style={{ background: tileBg(color) }} />
                   ))}
                 </div>
               </div>
               <button onClick={saveItem} disabled={saving || !fName || !fAmount || !fDay}
-                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}
               </button>

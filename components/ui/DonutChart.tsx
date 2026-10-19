@@ -1,8 +1,22 @@
 'use client'
 
-const PALETTE = ['#fbbf24', '#a78bfa', '#60a5fa', '#34d399', '#f87171', '#fb923c', '#22d3ee', '#f472b6', '#a3e635']
+// Les postes connus gardent toujours la même couleur (cohérence entre écrans) ;
+// les autres catégories prennent la palette complémentaire dans l'ordre.
+const NAMED: Record<string, string> = {
+  'Fixe': 'var(--cat-fixe)',
+  'Variable': 'var(--cat-variable)',
+  'Plaisir': 'var(--cat-variable)',
+  'Courses': 'var(--cat-courses)',
+  'Épargne': 'var(--cat-epargne)',
+  'Revenus': 'var(--cat-revenus)',
+}
+const PALETTE = [
+  'var(--cat-revenus)', 'var(--cat-extra-1)', 'var(--cat-extra-2)', 'var(--cat-extra-3)',
+  'var(--cat-extra-4)', 'var(--cat-fixe)', 'var(--cat-variable)', 'var(--cat-courses)', 'var(--cat-epargne)',
+]
 
-export function colorFor(index: number) {
+export function colorFor(index: number, label?: string) {
+  if (label && NAMED[label]) return NAMED[label]
   return PALETTE[index % PALETTE.length]
 }
 
@@ -26,13 +40,15 @@ export default function DonutChart({
   const circ = 2 * Math.PI * r
   let cumulative = 0
 
-  const slices = entries.map(([label, amount], i) => {
+  let unnamed = 0
+  const slices = entries.map(([label, amount]) => {
+    const color = colorFor(NAMED[label] ? 0 : unnamed++, label)
     const pct = total > 0 ? amount / total : 0
     const dash = pct * circ
     const gap = circ - dash
     const offset = circ - cumulative * circ
     cumulative += pct
-    return { label, amount, pct, dash, gap, offset, color: colorFor(i) }
+    return { label, amount, pct, dash, gap, offset, color }
   })
 
   return (

@@ -26,7 +26,7 @@ export default function MonthLockBanner({ monthKey, month, closed, onClose, onRe
   return (
     <div className="bg-[var(--bg-surface)] rounded-[16px] px-4 py-3 flex items-center gap-3">
       <div className="w-8 h-8 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
-        {closed ? <Lock size={14} color="var(--text-secondary)" /> : <LockOpen size={14} color={current ? 'var(--text-secondary)' : '#ff9f0a'} />}
+        {closed ? <Lock size={14} color="var(--text-secondary)" /> : <LockOpen size={14} color={current ? 'var(--text-secondary)' : 'var(--warning)'} />}
       </div>
       <p className="flex-1 text-[12px] text-[var(--text-secondary)] leading-snug">
         {closed

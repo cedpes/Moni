@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt } from '@/lib/utils'
+import { fmt, tileBg } from '@/lib/utils'
 import DonutChart from '@/components/ui/DonutChart'
 import { Plus, X, Loader2, Pencil } from 'lucide-react'
 
@@ -150,7 +150,7 @@ export default function EpargneShell({ workspaceId }: Props) {
               </div>
               <div className="text-right">
                 <p className="text-[13px] text-[var(--text-secondary)] mb-1">Reste à épargner</p>
-                <p className="text-[18px] font-bold text-[#fbbf24] tracking-tight">{fmt(totalRemaining)}</p>
+                <p className="text-[18px] font-bold text-cat-epargne tracking-tight">{fmt(totalRemaining)}</p>
               </div>
             </div>
             <DonutChart data={data} total={total} centerLabel="Total" />
@@ -172,14 +172,14 @@ export default function EpargneShell({ workspaceId }: Props) {
                 return (
                   <div key={g.id} className="bg-[var(--bg-surface)] rounded-[16px] p-4">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: g.color ?? 'var(--bg-surface-2)' }}>
+                      <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(g.color ?? 'var(--bg-surface-2)') }}>
                         {g.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[15px] font-semibold text-[var(--text-primary)]">{g.name}</p>
                         <p className="text-[12px] text-[var(--text-secondary)]">Objectif: {fmt(g.target_amount)} · Total épargné: {fmt(g.current_amount)}</p>
                         {g.target_date && (
-                          <p className={`text-[12px] mt-0.5 ${overdue ? 'text-[#f87171]' : 'text-[var(--text-secondary)]'}`}>
+                          <p className={`text-[12px] mt-0.5 ${overdue ? 'text-negative' : 'text-[var(--text-secondary)]'}`}>
                             {overdue ? 'Échéance dépassée · ' : 'Échéance : '}{fmtDate(g.target_date)}
                           </p>
                         )}
@@ -194,13 +194,13 @@ export default function EpargneShell({ workspaceId }: Props) {
                       </div>
                     </div>
                     <div className="h-1.5 bg-[var(--bg-surface-2)] rounded-full overflow-hidden mb-3">
-                      <div className="h-full rounded-full bg-[#fbbf24] transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full bg-cat-epargne transition-all" style={{ width: `${pct}%` }} />
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-[12px] text-[var(--text-secondary)]">{pct}% atteint</p>
-                      <button onClick={() => { setContribFor(g); setContribAmount('') }}
-                        className="w-8 h-8 rounded-full bg-[#fbbf24] flex items-center justify-center active:scale-95 transition-transform">
-                        <Plus size={16} color="var(--bg-surface)" />
+                      <button onClick={() => { setContribFor(g); setContribAmount('') }} aria-label="Ajouter un versement"
+                        className="w-8 h-8 rounded-full bg-cat-epargne flex items-center justify-center active:scale-95 transition-transform">
+                        <Plus size={16} color="var(--on-positive)" />
                       </button>
                     </div>
                   </div>
@@ -213,9 +213,9 @@ export default function EpargneShell({ workspaceId }: Props) {
 
       {!error && (
         <button onClick={openAdd}
-          className="fixed right-4 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+          className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-          <Plus size={24} color="white" />
+          <Plus size={24} color="var(--accent-ink)" />
         </button>
       )}
 
@@ -233,19 +233,19 @@ export default function EpargneShell({ workspaceId }: Props) {
             <div className="space-y-3">
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Nom</label>
-                <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                   placeholder="Vacances, Fonds d'urgence…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
               </div>
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Objectif (€)</label>
                 <input type="number" step="0.01" min="0"
-                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                   placeholder="0" value={fTarget} onChange={e => setFTarget(e.target.value)} />
               </div>
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Date de fin (optionnel)</label>
                 <input type="date"
-                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                   value={fTargetDate} onChange={e => setFTargetDate(e.target.value)} />
               </div>
               <div>
@@ -253,8 +253,8 @@ export default function EpargneShell({ workspaceId }: Props) {
                 <div className="flex flex-wrap gap-2">
                   {ICONS.map(icon => (
                     <button key={icon} onClick={() => setFIcon(icon)}
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#3b82f6]' : ''}`}
-                      style={{ background: fColor }}>{icon}</button>
+                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-accent-text' : ''}`}
+                      style={{ background: tileBg(fColor) }}>{icon}</button>
                   ))}
                 </div>
               </div>
@@ -263,13 +263,13 @@ export default function EpargneShell({ workspaceId }: Props) {
                 <div className="flex gap-2">
                   {COLORS.map(color => (
                     <button key={color} onClick={() => setFColor(color)}
-                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-[#3b82f6]' : ''}`}
-                      style={{ background: color }} />
+                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-accent-text' : ''}`}
+                      style={{ background: tileBg(color) }} />
                   ))}
                 </div>
               </div>
               <button onClick={saveGoal} disabled={saving || !fName || !fTarget}
-                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Créer'}
               </button>
@@ -293,11 +293,11 @@ export default function EpargneShell({ workspaceId }: Props) {
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                 <input type="number" step="0.01" min="0"
-                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                   placeholder="0" value={contribAmount} onChange={e => setContribAmount(e.target.value)} autoFocus />
               </div>
               <button onClick={addContribution} disabled={saving || !contribAmount}
-                className="w-full h-12 bg-[#fbbf24] text-[var(--bg-surface)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-cat-epargne text-on-positive rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 Ajouter
               </button>

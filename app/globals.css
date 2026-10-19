@@ -38,6 +38,9 @@
   --negative: #fb923c;
   --positive-soft: rgba(45, 212, 191, 0.14);
   --negative-soft: rgba(251, 146, 60, 0.14);
+  --warning: #f5c451;         /* à venir, en attente */
+  --on-positive: #0d0e11;     /* texte/icône posé sur --positive */
+  --on-warning: #0d0e11;
 
   /* Catégories de données */
   --cat-revenus: #60a5fa;
@@ -45,12 +48,20 @@
   --cat-variable: #fb923c;
   --cat-courses: #f5c451;
   --cat-epargne: #2dd4bf;
+  /* Couleurs supplémentaires pour les graphiques à nombreuses catégories */
+  --cat-extra-1: #f472b6;
+  --cat-extra-2: #22d3ee;
+  --cat-extra-3: #a3e635;
+  --cat-extra-4: #c4b5fd;
 
   /* Graphiques (alias historiques) */
   --chart-income: var(--cat-revenus);
   --chart-expense: var(--cat-variable);
   --chart-savings: var(--cat-epargne);
   --chart-grid: rgba(255, 255, 255, 0.08);
+
+  /* Intensité des pastels des tuiles d'icônes (voir tileBg) */
+  --tile-mix: 16%;
 
   /* Rayons */
   --radius-icon: 12px;
@@ -85,14 +96,22 @@
   --negative: #c2410c;
   --positive-soft: #d5f2ee;
   --negative-soft: #fde6d6;
+  --warning: #b45309;
+  --on-positive: #ffffff;
+  --on-warning: #ffffff;
 
   --cat-revenus: #2563eb;
   --cat-fixe: #4f5bd5;
   --cat-variable: #ea580c;
   --cat-courses: #d4a017;
   --cat-epargne: #0d9488;
+  --cat-extra-1: #db2777;
+  --cat-extra-2: #0891b2;
+  --cat-extra-3: #65a30d;
+  --cat-extra-4: #7c3aed;
 
   --chart-grid: rgba(0, 0, 0, 0.07);
+  --tile-mix: 100%;
 }
 
 /* Expose les jetons à Tailwind v4 : bg-accent, text-positive, font-display… */
@@ -105,6 +124,9 @@
   --color-accent-soft: var(--accent-soft);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-warning: var(--warning);
+  --color-on-positive: var(--on-positive);
+  --color-on-warning: var(--on-warning);
   --color-cat-revenus: var(--cat-revenus);
   --color-cat-fixe: var(--cat-fixe);
   --color-cat-variable: var(--cat-variable);

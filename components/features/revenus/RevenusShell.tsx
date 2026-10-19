@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences, getMonthLabel } from '@/lib/utils'
+import { fmt, fixedItemMonthlyAmount, isWeeklyDueDay, isoWeekdayFromDueDay, weeklyDueDay, WEEKDAY_NAMES, countWeekdayOccurrences, getMonthLabel, tileBg } from '@/lib/utils'
 import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, prevMonthKey, parseAnnualMonths, formatAnnualMonths, addMonths, isFixedItemActiveInMonth, MONTH_NAMES_SHORT, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
 import MonthPicker from '@/components/ui/MonthPicker'
 import MonthLockBanner from '@/components/ui/MonthLockBanner'
@@ -232,7 +232,7 @@ export default function RevenusShell({ workspaceId }: Props) {
         : `${fmt(item.amount)} · le ${item.due_day} de chaque mois`
     return (
       <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
-        <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: item.color ?? 'var(--bg-surface-2)' }}>
+        <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>
           {item.icon}
         </div>
         <div className="flex-1 min-w-0">
@@ -250,8 +250,8 @@ export default function RevenusShell({ workspaceId }: Props) {
           </>)}
           {!weekly && (
             <button onClick={() => toggleDone(item)}
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-[#34c759]' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
-              <Check size={14} color={done ? 'white' : 'var(--text-tertiary)'} strokeWidth={2.5} />
+              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-positive' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
+              <Check size={14} color={done ? 'var(--on-positive)' : 'var(--text-tertiary)'} strokeWidth={2.5} />
             </button>
           )}
         </div>
@@ -318,12 +318,12 @@ export default function RevenusShell({ workspaceId }: Props) {
           )}
 
           {closePrompt && (
-            <div className="bg-[var(--bg-surface)] border border-[#34c759]/40 rounded-[16px] px-4 py-3.5">
+            <div className="bg-[var(--bg-surface)] border border-positive/40 rounded-[16px] px-4 py-3.5">
               <p className="text-[14px] font-semibold text-[var(--text-primary)]">💵 Salaire reçu</p>
               <p className="text-[13px] text-[var(--text-secondary)] mt-0.5">Clôturer {getMonthLabel(closePrompt.monthKey)} ? Ses revenus et charges seront figés.</p>
               <div className="flex gap-2 mt-3">
                 <button onClick={confirmClosePrev} disabled={closingPrev}
-                  className="flex-1 h-9 rounded-[10px] bg-[#34c759] text-white text-[13px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">
+                  className="flex-1 h-9 rounded-[10px] bg-positive text-on-positive text-[13px] font-semibold flex items-center justify-center gap-1.5 disabled:opacity-50">
                   {closingPrev && <Loader2 size={13} className="animate-spin" />}
                   Clôturer {getMonthLabel(closePrompt.monthKey).split(' ')[0]}
                 </button>
@@ -336,7 +336,7 @@ export default function RevenusShell({ workspaceId }: Props) {
           )}
 
           {savedNote && (
-            <div className="bg-[#3b82f6]/15 border border-[#3b82f6]/40 rounded-[14px] px-4 py-3 flex items-center gap-3">
+            <div className="bg-accent-soft border border-accent-text/40 rounded-[14px] px-4 py-3 flex items-center gap-3">
               <p className="flex-1 text-[13px] text-[var(--text-primary)]">✓ {savedNote}</p>
               <button onClick={() => setSavedNote('')} aria-label="Fermer"><X size={14} color="var(--text-secondary)" /></button>
             </div>
@@ -363,9 +363,9 @@ export default function RevenusShell({ workspaceId }: Props) {
       )}
 
       {!readOnly && <button onClick={openAdd}
-        className="fixed right-4 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+        className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
         style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-        <Plus size={24} color="white" />
+        <Plus size={24} color="var(--accent-ink)" />
       </button>}
 
       {showModal && (
@@ -383,13 +383,13 @@ export default function RevenusShell({ workspaceId }: Props) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Nom</label>
-                  <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                  <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder="Salaire, Freelance…" value={fName} onChange={e => setFName(e.target.value)} autoFocus />
                 </div>
                 <div>
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder="0" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
               </div>
@@ -412,7 +412,7 @@ export default function RevenusShell({ workspaceId }: Props) {
                     <div className="mb-3">
                       <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Mois de versement</label>
                       <select value={fTargetMonth} onChange={e => setFTargetMonth(e.target.value)}
-                        className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]">
+                        className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text">
                         {monthOptions.map(mk => <option key={mk} value={mk}>{getMonthLabel(mk)}</option>)}
                       </select>
                       <p className="text-[12px] text-[var(--text-secondary)] mt-2">Compté uniquement sur ce mois, jamais reporté sur les autres.</p>
@@ -426,7 +426,7 @@ export default function RevenusShell({ workspaceId }: Props) {
                           const on = fAnnualMonths.includes(i + 1)
                           return (
                             <button key={name} onClick={() => setFAnnualMonths(prev => on ? prev.filter(m => m !== i + 1) : [...prev, i + 1])}
-                              className={`h-9 rounded-[9px] text-[12px] font-medium transition-all border ${on ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
+                              className={`h-9 rounded-[9px] text-[12px] font-medium transition-all border ${on ? 'border-accent-text bg-accent-soft text-accent-text' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
                               {name}
                             </button>
                           )
@@ -437,7 +437,7 @@ export default function RevenusShell({ workspaceId }: Props) {
                   )}
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Jour de réception</label>
                   <input type="number" min="1" max="31"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder="Ex : 28" value={fDay} onChange={e => setFDay(e.target.value)} />
                 </div>
               ) : (
@@ -446,7 +446,7 @@ export default function RevenusShell({ workspaceId }: Props) {
                   <div className="grid grid-cols-4 gap-2">
                     {WEEKDAY_NAMES.map((name, i) => (
                       <button key={name} onClick={() => setFWeekday(i + 1)}
-                        className={`h-10 rounded-[10px] text-[13px] font-medium transition-all border ${fWeekday === i + 1 ? 'border-[#3b82f6] bg-[#3b82f6]/15 text-[#93c5fd]' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
+                        className={`h-10 rounded-[10px] text-[13px] font-medium transition-all border ${fWeekday === i + 1 ? 'border-accent-text bg-accent-soft text-accent-text' : 'border-[var(--border-default)] bg-[var(--bg-surface-2)] text-[var(--text-secondary)]'}`}>
                         {name}
                       </button>
                     ))}
@@ -460,8 +460,8 @@ export default function RevenusShell({ workspaceId }: Props) {
                 <div className="flex flex-wrap gap-2">
                   {INCOME_ICONS.map(icon => (
                     <button key={icon} onClick={() => setFIcon(icon)}
-                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-[#3b82f6]' : ''}`}
-                      style={{ background: fColor }}>{icon}</button>
+                      className={`w-9 h-9 rounded-[10px] flex items-center justify-center text-lg ${fIcon === icon ? 'ring-2 ring-accent-text' : ''}`}
+                      style={{ background: tileBg(fColor) }}>{icon}</button>
                   ))}
                 </div>
               </div>
@@ -470,8 +470,8 @@ export default function RevenusShell({ workspaceId }: Props) {
                 <div className="flex gap-2">
                   {COLORS.map(color => (
                     <button key={color} onClick={() => setFColor(color)}
-                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-[#3b82f6]' : ''}`}
-                      style={{ background: color }} />
+                      className={`w-8 h-8 rounded-full ${fColor === color ? 'ring-2 ring-offset-2 ring-offset-[var(--bg-surface)] ring-accent-text' : ''}`}
+                      style={{ background: tileBg(color) }} />
                   ))}
                 </div>
               </div>
@@ -481,7 +481,7 @@ export default function RevenusShell({ workspaceId }: Props) {
                 </p>
               )}
               <button onClick={saveItem} disabled={saving || !fName || !fAmount || (fFrequency !== 'weekly' && !fDay) || (fFrequency === 'annual' && fAnnualMonths.length === 0)}
-                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 mt-1 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 {editItem ? 'Enregistrer' : 'Ajouter'}
               </button>

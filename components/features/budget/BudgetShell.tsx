@@ -185,7 +185,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
                 <div key={w.index} className="bg-[var(--bg-surface)] rounded-[20px] p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-[15px] font-semibold text-[var(--text-primary)]">Semaine du {w.label}</p>
-                    <p className={`text-[15px] font-bold ${w.restant >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.restant)}</p>
+                    <p className={`text-[15px] font-bold ${w.restant >= 0 ? 'text-positive' : 'text-negative'}`}>{fmt(w.restant)}</p>
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[13px]">
@@ -204,7 +204,7 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
                   <div className="h-px bg-[var(--surface-highlight-2)] my-2.5" />
                   <div className="flex items-center justify-between text-[12px]">
                     <span className="text-[var(--text-secondary)]">Cumul depuis le début du mois</span>
-                    <span className={`font-semibold ${w.cumulative >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(w.cumulative)}</span>
+                    <span className={`font-semibold ${w.cumulative >= 0 ? 'text-positive' : 'text-negative'}`}>{fmt(w.cumulative)}</span>
                   </div>
                 </div>
               ))}
@@ -226,11 +226,11 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
             <p className="text-[15px] font-semibold text-[var(--text-primary)] px-1 mb-2">Entrées et sorties d&apos;argent</p>
             <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
               {[
-                { label: 'Revenus', value: income, icon: Wallet, bg: '#1e3a8a', color: '#60a5fa' },
-                { label: tab === 'reel' ? 'Dépenses fixes payées' : 'Dépenses fixes', value: charges, icon: CreditCard, bg: '#3b0764', color: '#a78bfa' },
-                { label: tab === 'reel' ? 'Dépenses variables' : 'Dépenses variables prévues', value: variable, icon: Mail, bg: '#312e81', color: '#818cf8' },
-                { label: 'Courses', value: courses, icon: ShoppingCart, bg: '#1e3a5f', color: '#60a5fa' },
-                { label: 'Épargne', value: epargne, icon: PiggyBank, bg: '#1e3a5f', color: '#38bdf8' },
+                { label: 'Revenus', value: income, icon: Wallet, bg: 'color-mix(in srgb, var(--cat-revenus) 16%, transparent)', color: 'var(--cat-revenus)' },
+                { label: tab === 'reel' ? 'Dépenses fixes payées' : 'Dépenses fixes', value: charges, icon: CreditCard, bg: 'color-mix(in srgb, var(--cat-fixe) 16%, transparent)', color: 'var(--cat-fixe)' },
+                { label: tab === 'reel' ? 'Dépenses variables' : 'Dépenses variables prévues', value: variable, icon: Mail, bg: 'color-mix(in srgb, var(--cat-variable) 16%, transparent)', color: 'var(--cat-variable)' },
+                { label: 'Courses', value: courses, icon: ShoppingCart, bg: 'color-mix(in srgb, var(--cat-courses) 16%, transparent)', color: 'var(--cat-courses)' },
+                { label: 'Épargne', value: epargne, icon: PiggyBank, bg: 'color-mix(in srgb, var(--cat-epargne) 16%, transparent)', color: 'var(--cat-epargne)' },
               ].map(({ label, value, icon: Icon, bg, color }, i) => (
                 <div key={label} className={`flex items-center px-4 py-3.5 gap-3 ${i < 4 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
                   <div className="w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
@@ -241,11 +241,11 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
                 </div>
               ))}
               <div className="flex items-center px-4 py-3.5 gap-3 bg-[var(--surface-highlight)]">
-                <div className="w-9 h-9 rounded-[10px] bg-[#064e3b] flex items-center justify-center flex-shrink-0">
-                  <Wallet size={16} color="#34d399" />
+                <div className="w-9 h-9 rounded-[10px] bg-positive/15 flex items-center justify-center flex-shrink-0">
+                  <Wallet size={16} color="var(--positive)" />
                 </div>
                 <p className="flex-1 text-[15px] font-semibold text-[var(--text-primary)]">Restant {tab === 'reel' ? 'réel' : 'prévisionnel'}</p>
-                <p className={`text-[15px] font-bold ${restant >= 0 ? 'text-[#34d399]' : 'text-[#f87171]'}`}>{fmt(restant)}</p>
+                <p className={`text-[15px] font-bold ${restant >= 0 ? 'text-positive' : 'text-negative'}`}>{fmt(restant)}</p>
               </div>
             </div>
           </div>
@@ -258,8 +258,8 @@ export default function BudgetShell({ workspaceId, displayName }: Props) {
                 <Info size={14} color="var(--text-secondary)" />
               </div>
               <p className="text-[14px] text-[var(--text-body)] leading-relaxed">
-                Il reste <strong className="text-[#f87171]">{daysLeft} jour{daysLeft > 1 ? 's' : ''}</strong> avant la fin du mois &amp;{' '}
-                <strong className="text-[#34d399]">{fmt(perDay)}</strong> à dépenser par jour !
+                Il reste <strong className="text-negative">{daysLeft} jour{daysLeft > 1 ? 's' : ''}</strong> avant la fin du mois &amp;{' '}
+                <strong className="text-positive">{fmt(perDay)}</strong> à dépenser par jour !
               </p>
             </div>
           </div>

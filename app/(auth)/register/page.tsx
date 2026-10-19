@@ -80,24 +80,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-[var(--bg-app)] flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
 
         <div className="text-center mb-10">
           <div className="text-5xl mb-4">💳</div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1d1d1f]">Créer un compte</h1>
-          <p className="text-[#86868b] text-sm mt-1">Gratuit, sans pub, tes données restent tiennes</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">Créer un compte</h1>
+          <p className="text-[var(--text-secondary)] text-sm mt-1">Gratuit, sans pub, tes données restent tiennes</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="bg-white rounded-2xl overflow-hidden">
+          <div className="bg-[var(--bg-surface)] rounded-2xl overflow-hidden">
             <input
               type="text"
               placeholder="Prénom"
               value={name}
               onChange={e => setName(e.target.value)}
               autoComplete="given-name"
-              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]"
+              className="w-full px-4 h-12 text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none border-b border-[var(--border-subtle)]"
               required
             />
             <input
@@ -106,7 +106,7 @@ export default function RegisterPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               autoComplete="email"
-              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none border-b border-[#f2f2f7]"
+              className="w-full px-4 h-12 text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none border-b border-[var(--border-subtle)]"
               required
             />
             <input
@@ -115,28 +115,28 @@ export default function RegisterPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               autoComplete="new-password"
-              className="w-full px-4 h-12 text-[16px] text-[#1d1d1f] placeholder-[#aeaeb2] outline-none"
+              className="w-full px-4 h-12 text-[16px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)] outline-none"
               required
             />
           </div>
 
           {error && (
-            <p className="text-[#ff3b30] text-sm text-center">{error}</p>
+            <p className="text-negative text-sm text-center">{error}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 bg-[#1d1d1f] text-white rounded-2xl font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all"
+            className="w-full h-12 bg-accent text-accent-ink rounded-2xl font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all"
           >
             {loading && <Loader2 size={16} className="animate-spin" />}
             Créer mon compte
           </button>
         </form>
 
-        <p className="text-center mt-6 text-sm text-[#86868b]">
+        <p className="text-center mt-6 text-sm text-[var(--text-secondary)]">
           Déjà un compte ?{' '}
-          <Link href="/login" className="text-[#007aff]">Se connecter</Link>
+          <Link href="/login" className="text-accent-text">Se connecter</Link>
         </p>
       </div>
     </div>

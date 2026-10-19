@@ -31,12 +31,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <Link key={href} href={href}
                   className={cn(
                     'flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors min-w-[52px]',
-                    active ? 'text-[#a78bfa]' : 'text-[var(--text-secondary)]'
+                    active ? 'text-accent-text' : 'text-[var(--text-secondary)]'
                   )}>
                   <Icon size={22} strokeWidth={active ? 2.2 : 1.8} className="transition-all" />
                   <span className={cn(
                     'text-[10px] font-medium tracking-tight transition-all',
-                    active ? 'text-[#a78bfa]' : 'text-[var(--text-secondary)]'
+                    active ? 'text-accent-text' : 'text-[var(--text-secondary)]'
                   )}>
                     {label}
                   </span>

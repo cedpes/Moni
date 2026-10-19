@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useMonth } from '@/lib/context/MonthContext'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, defaultDateForMonth, isDateInMonth } from '@/lib/utils'
+import { fmt, defaultDateForMonth, isDateInMonth, tileBg } from '@/lib/utils'
 import MonthPicker from '@/components/ui/MonthPicker'
 import { Plus, X, Loader2, Settings2 } from 'lucide-react'
 import { useMonthData } from '@/hooks/useMonthData'
@@ -53,7 +53,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
     .reduce((s: number, t: any) => s + t.amount, 0), [monthTransactions])
   const monthPct = monthlyBudget > 0 ? Math.min(100, Math.round(monthTotal / monthlyBudget * 100)) : 0
   const monthRemain = monthlyBudget - monthTotal
-  const barColor = (pct: number) => pct < 70 ? '#34c759' : pct < 100 ? '#ff9f0a' : '#ff3b30'
+  const barColor = (pct: number) => pct < 70 ? 'var(--positive)' : pct < 100 ? 'var(--warning)' : 'var(--negative)'
 
   async function addTransaction() {
     const amount = parseFloat(fAmount)
@@ -101,8 +101,8 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
               <Settings2 size={15} />
             </button>
             <button onClick={() => { setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setDateError(false); setShowModal(true) }}
-              className="w-8 h-8 rounded-full bg-[#3b82f6] flex items-center justify-center active:scale-95 transition-transform">
-              <Plus size={16} color="white" />
+              className="w-8 h-8 rounded-full bg-accent flex items-center justify-center active:scale-95 transition-transform">
+              <Plus size={16} color="var(--accent-ink)" />
             </button>
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
             </div>
             <div className="flex justify-between text-[12px] text-[var(--text-secondary)]">
               <span>{monthPct}% utilisé</span>
-              <span className={monthRemain < 0 ? 'text-[#ff3b30]' : ''}>{monthRemain >= 0 ? `${fmt(monthRemain)} restant` : `${fmt(-monthRemain)} dépassé`}</span>
+              <span className={monthRemain < 0 ? 'text-negative' : ''}>{monthRemain >= 0 ? `${fmt(monthRemain)} restant` : `${fmt(-monthRemain)} dépassé`}</span>
             </div>
           </div>
 
@@ -142,7 +142,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
             ) : monthTransactions.map((t: any, i: number) => (
               <div key={t.id} className={`flex items-center px-4 py-3 gap-3 ${i < monthTransactions.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
                 <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0"
-                  style={{ background: STORE_COLORS[t.label] ?? '#f2f2f7' }}>{STORE_ICONS[t.label] ?? '🛒'}</div>
+                  style={{ background: tileBg(STORE_COLORS[t.label] ?? null) }}>{STORE_ICONS[t.label] ?? '🛒'}</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-medium text-[var(--text-primary)]">{t.label}</p>
                   <p className="text-[12px] text-[var(--text-secondary)]">{fmtShort(t.date)}</p>
@@ -150,7 +150,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
                 <p className="text-[15px] font-semibold text-[var(--text-primary)] flex-shrink-0">{fmt(t.amount)}</p>
                 <button onClick={() => deleteTransaction(t.id)} disabled={deleting === t.id}
                   className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center flex-shrink-0">
-                  {deleting === t.id ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="#86868b" />}
+                  {deleting === t.id ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
                 </button>
               </div>
             ))}
@@ -159,9 +159,9 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
       )}
 
       <button onClick={() => { setFLabel(''); setFAmount(''); setFDate(defaultDateForMonth(monthKey)); setDateError(false); setShowModal(true) }}
-        className="fixed right-4 w-14 h-14 bg-[#3b82f6] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+        className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-        <Plus size={24} color="white" />
+        <Plus size={24} color="var(--accent-ink)" />
       </button>
 
       {showModal && (
@@ -171,7 +171,7 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
             <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Ajouter un passage</h2>
-              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center"><X size={14} color="#86868b" /></button>
+              <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center"><X size={14} color="var(--text-secondary)" /></button>
             </div>
             <div className="space-y-3">
               <div>
@@ -186,21 +186,21 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
                 <div>
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     placeholder="0.00" value={fAmount} onChange={e => setFAmount(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Date</label>
                   <input type="date"
-                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                     value={fDate} onChange={e => { setFDate(e.target.value); setDateError(false) }} />
                 </div>
               </div>
               {dateError && (
-                <p className="text-[12px] text-[#f87171] px-1">La date doit être dans le mois affiché ({monthKey}), sinon le passage ne compte pas dans son budget.</p>
+                <p className="text-[12px] text-negative px-1">La date doit être dans le mois affiché ({monthKey}), sinon le passage ne compte pas dans son budget.</p>
               )}
               <button onClick={addTransaction} disabled={saving || !fLabel || !fAmount}
-                className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}Ajouter
               </button>
             </div>
@@ -215,16 +215,16 @@ export default function CoursesShell({ workspaceId, userId }: Props) {
             <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-5" />
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Paramètres courses</h2>
-              <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center"><X size={14} color="#86868b" /></button>
+              <button onClick={() => setShowSettings(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center"><X size={14} color="var(--text-secondary)" /></button>
             </div>
             <div className="space-y-3">
               <div>
                 <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Budget mensuel (€)</label>
                 <input type="number" min="0"
-                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-[#3b82f6]"
+                  className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] text-[var(--text-primary)] outline-none focus:border-accent-text"
                   value={tmpMonthly} onChange={e => setTmpMonthly(e.target.value)} />
               </div>
-              <button onClick={saveSettings} className="w-full h-12 bg-[#3b82f6] text-[var(--text-primary)] rounded-[14px] font-semibold text-[15px] active:scale-[0.98] transition-all">
+              <button onClick={saveSettings} className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] active:scale-[0.98] transition-all">
                 Enregistrer
               </button>
             </div>

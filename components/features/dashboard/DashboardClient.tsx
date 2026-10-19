@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react'
 import { createClient } from '@/lib/pocketbase/client'
-import { fmt, barColorHex, fixedItemMonthlyAmount } from '@/lib/utils'
+import { fmt, barColorHex, fixedItemMonthlyAmount, tileBg } from '@/lib/utils'
 import { useMonth } from '@/lib/context/MonthContext'
 import { useMonthData } from '@/hooks/useMonthData'
 import MonthPicker from '@/components/ui/MonthPicker'
@@ -97,8 +97,8 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
   }, [])
 
   const statusLabel = reste > 50 ? 'Budget OK' : reste > 0 ? 'Attention' : 'Dépassement'
-  const statusClass = reste > 50 ? 'bg-[#e8faf0] text-[#1a7f3c]' : reste > 0 ? 'bg-[#fff5e6] text-[#b45309]' : 'bg-[#fef0f0] text-[#c0392b]'
-  const dotColor = reste > 50 ? '#34c759' : reste > 0 ? '#ff9f0a' : '#ff3b30'
+  const statusClass = reste > 50 ? 'bg-positive/15 text-positive' : reste > 0 ? 'bg-warning/15 text-warning' : 'bg-negative/15 text-negative'
+  const dotColor = reste > 50 ? 'var(--positive)' : reste > 0 ? 'var(--warning)' : 'var(--negative)'
 
   async function addTransaction() {
     const amount = parseFloat(txAmount)
@@ -121,22 +121,22 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] pb-24">
+    <div className="min-h-screen bg-[var(--bg-app)] pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-[#f5f5f7]/90 backdrop-blur-xl border-b border-black/[0.06] px-5 pt-14 pb-3">
+      <header className="sticky top-0 z-10 bg-[var(--header-blur-bg)] backdrop-blur-xl border-b border-black/[0.06] px-5 pt-14 pb-3">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[13px] text-[#86868b]">{greeting} {displayName?.split(' ')[0] ?? ''} 👋</p>
-            <h1 className="text-[28px] font-bold tracking-tight text-[#1d1d1f] leading-tight">Budget</h1>
+            <p className="text-[13px] text-[var(--text-secondary)]">{greeting} {displayName?.split(' ')[0] ?? ''} 👋</p>
+            <h1 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">Budget</h1>
           </div>
           <div className="flex items-center gap-2 mt-2">
             <a href="https://hacpe.duckdns.org/local/domotique.html"
-              className="w-8 h-8 rounded-full bg-white border border-[#d1d1d6] flex items-center justify-center text-[#86868b] active:scale-95 transition-transform">
+              className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform">
               <Home size={15} />
             </a>
             <MonthPicker />
             <button onClick={() => router.push('/settings')}
-              className="w-8 h-8 rounded-full bg-white border border-[#d1d1d6] flex items-center justify-center text-[#86868b] active:scale-95 transition-transform">
+              className="w-8 h-8 rounded-full bg-[var(--bg-surface)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform">
               <Settings size={15} />
             </button>
           </div>
@@ -145,14 +145,14 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
 
       {loading ? (
         <div className="flex items-center justify-center pt-20">
-          <Loader2 size={28} className="animate-spin text-[#86868b]" />
+          <Loader2 size={28} className="animate-spin text-[var(--text-secondary)]" />
         </div>
       ) : (
         <div className="px-4 pt-5 space-y-3">
 
           {/* Hero card */}
-          <div className="bg-white rounded-[20px] p-5">
-            <p className="text-[11px] font-semibold tracking-widest uppercase text-[#86868b] mb-3">{monthLabel}</p>
+          <div className="bg-[var(--bg-surface)] rounded-[20px] p-5">
+            <p className="text-[11px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] mb-3">{monthLabel}</p>
 
             <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-medium mb-4 ${statusClass}`}>
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
@@ -162,79 +162,79 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
             <div className="flex justify-center mb-5">
               <div className="relative w-[140px] h-[140px]">
                 <svg width="140" height="140" viewBox="0 0 140 140">
-                  <circle cx="70" cy="70" r="60" fill="none" stroke="#f2f2f7" strokeWidth="8" />
+                  <circle cx="70" cy="70" r="60" fill="none" stroke="var(--bg-surface-2)" strokeWidth="8" />
                   <circle cx="70" cy="70" r="60" fill="none" stroke={ringColor} strokeWidth="8"
                     strokeDasharray={circ.toFixed(1)} strokeDashoffset={offset.toFixed(1)}
                     strokeLinecap="round" transform="rotate(-90 70 70)" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-[11px] text-[#86868b]">Reste plaisir</span>
-                  <span className="text-[24px] font-bold tracking-tight text-[#1d1d1f] leading-tight">{fmt(reste)}</span>
-                  <span className="text-[11px] text-[#86868b]">{pct}% dispo</span>
+                  <span className="text-[11px] text-[var(--text-secondary)]">Reste plaisir</span>
+                  <span className="text-[24px] font-bold tracking-tight text-[var(--text-primary)] leading-tight">{fmt(reste)}</span>
+                  <span className="text-[11px] text-[var(--text-secondary)]">{pct}% dispo</span>
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 divide-x divide-[#f2f2f7] border-t border-[#f2f2f7] pt-4">
+            <div className="grid grid-cols-3 divide-x divide-[var(--border-subtle)] border-t border-[var(--border-subtle)] pt-4">
               {[
                 { label: 'Plaisir', value: fmt(plaisir) },
-                { label: 'Prédictif', value: '−'+fmt(totalPlanned), cls: 'text-[#ff9f0a]' },
-                { label: 'Dépensé', value: '−'+fmt(totalReal), cls: 'text-[#ff3b30]' },
+                { label: 'Prédictif', value: '−'+fmt(totalPlanned), cls: 'text-warning' },
+                { label: 'Dépensé', value: '−'+fmt(totalReal), cls: 'text-negative' },
               ].map(({ label, value, cls }) => (
                 <div key={label} className="text-center px-2">
-                  <p className="text-[11px] text-[#86868b] mb-1">{label}</p>
-                  <p className={`text-[15px] font-semibold text-[#1d1d1f] ${cls ?? ''}`}>{value}</p>
+                  <p className="text-[11px] text-[var(--text-secondary)] mb-1">{label}</p>
+                  <p className={`text-[15px] font-semibold text-[var(--text-primary)] ${cls ?? ''}`}>{value}</p>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Conseil */}
-          <div className="bg-white rounded-[20px] px-4 py-3.5 flex gap-3">
+          <div className="bg-[var(--bg-surface)] rounded-[20px] px-4 py-3.5 flex gap-3">
             <span className="text-[18px] mt-0.5">{reste > 50 ? '✅' : reste > 0 ? '⚠️' : '🚨'}</span>
-            <p className="text-[13px] text-[#3a3a3c] leading-relaxed">
+            <p className="text-[13px] text-[var(--text-body)] leading-relaxed">
               {reste > 50
-                ? <>Il te reste <strong className="text-[#1d1d1f]">{fmt(reste)}</strong> après prédictif et dépenses. Tu es dans les clous.</>
+                ? <>Il te reste <strong className="text-[var(--text-primary)]">{fmt(reste)}</strong> après prédictif et dépenses. Tu es dans les clous.</>
                 : reste > 0
-                ? <>Attention, il ne reste que <strong className="text-[#1d1d1f]">{fmt(reste)}</strong>. Surveille les prochaines dépenses.</>
-                : <>Budget dépassé de <strong className="text-[#1d1d1f]">{fmt(-reste)}</strong>.</>
+                ? <>Attention, il ne reste que <strong className="text-[var(--text-primary)]">{fmt(reste)}</strong>. Surveille les prochaines dépenses.</>
+                : <>Budget dépassé de <strong className="text-[var(--text-primary)]">{fmt(-reste)}</strong>.</>
               }
             </p>
           </div>
 
           {/* Mois non courant — bannière info */}
           {!isCurrentMonth && (
-            <div className="bg-[#f0f7ff] rounded-[16px] px-4 py-3 flex items-center gap-3">
+            <div className="bg-accent-soft rounded-[16px] px-4 py-3 flex items-center gap-3">
               <span className="text-lg">📅</span>
-              <p className="text-[13px] text-[#185fa5] font-medium">Tu consultes {monthLabel}</p>
+              <p className="text-[13px] text-accent-text font-medium">Tu consultes {monthLabel}</p>
             </div>
           )}
 
           {/* Solde final du mois */}
           {totalIncome > 0 && (
             <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[#86868b] px-1 pt-1">Solde fin de mois</p>
-              <div className="bg-white rounded-[20px] p-4">
+              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-1">Solde fin de mois</p>
+              <div className="bg-[var(--bg-surface)] rounded-[20px] p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[13px] text-[#86868b]">Revenus − tout le reste</p>
-                  <p className={`text-[22px] font-bold tracking-tight ${soldeFinal >= 0 ? 'text-[#34c759]' : 'text-[#ff3b30]'}`}>
+                  <p className="text-[13px] text-[var(--text-secondary)]">Revenus − tout le reste</p>
+                  <p className={`text-[22px] font-bold tracking-tight ${soldeFinal >= 0 ? 'text-positive' : 'text-negative'}`}>
                     {soldeFinal >= 0 ? '+' : ''}{fmt(soldeFinal)}
                   </p>
                 </div>
                 <div className="space-y-1.5">
                   {[
-                    { label: 'Revenus', value: totalIncome, color: '#34c759', sign: '+' },
-                    { label: 'Charges fixes', value: totalCharges, color: '#ff3b30', sign: '−' },
-                    { label: 'Plaisir dépensé', value: metrics.totalReal, color: '#ff9f0a', sign: '−' },
-                    { label: 'Courses réelles', value: depenseCourses, color: '#86868b', sign: '−' },
-                    { label: 'Épargne', value: envelopes.find((e:any)=>e.slug==='epargne')?.budget??0, color: '#007aff', sign: '−' },
+                    { label: 'Revenus', value: totalIncome, color: 'var(--cat-revenus)', sign: '+' },
+                    { label: 'Charges fixes', value: totalCharges, color: 'var(--cat-fixe)', sign: '−' },
+                    { label: 'Plaisir dépensé', value: metrics.totalReal, color: 'var(--cat-variable)', sign: '−' },
+                    { label: 'Courses réelles', value: depenseCourses, color: 'var(--cat-courses)', sign: '−' },
+                    { label: 'Épargne', value: envelopes.find((e:any)=>e.slug==='epargne')?.budget??0, color: 'var(--cat-epargne)', sign: '−' },
                   ].map(({ label, value, color, sign }) => value > 0 ? (
                     <div key={label} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                        <p className="text-[13px] text-[#86868b]">{label}</p>
+                        <p className="text-[13px] text-[var(--text-secondary)]">{label}</p>
                       </div>
-                      <p className="text-[13px] font-medium text-[#1d1d1f]">{sign}{fmt(value)}</p>
+                      <p className="text-[13px] font-medium text-[var(--text-primary)]">{sign}{fmt(value)}</p>
                     </div>
                   ) : null)}
                 </div>
@@ -245,8 +245,8 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
           {/* Camembert répartition budget complet */}
           {totalIncome > 0 && (
             <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[#86868b] px-1 pt-1">Répartition du budget</p>
-              <div className="bg-white rounded-[20px] p-4">
+              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-1">Répartition du budget</p>
+              <div className="bg-[var(--bg-surface)] rounded-[20px] p-4">
                 <DonutChart
                   data={{
                     ...chargesByCategory,
@@ -263,18 +263,18 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
           {/* Actions rapides — seulement mois courant */}
           {isCurrentMonth && (
             <>
-              <p className="text-[12px] font-semibold tracking-widest uppercase text-[#86868b] px-1 pt-1">Actions rapides</p>
+              <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-1">Actions rapides</p>
               <div className="grid grid-cols-2 gap-2.5">
                 {[
-                  { label:'Dépense', sub:'Ajouter au suivi', icon:'💸', bg:'#fff0f0', action: () => { setTxEnv('plaisir'); setShowModal(true) } },
-                  { label:'Courses', sub:'Saisir un passage', icon:'🛒', bg:'#f0fff4', action: () => router.push('/courses') },
-                  { label:'Prédictif', sub:'Planifier', icon:'📋', bg:'#f0f7ff', action: () => router.push('/planned') },
-                  { label:'Calendrier', sub:'Voir les échéances', icon:'📅', bg:'#fff8f0', action: () => router.push('/calendar') },
+                  { label:'Dépense', sub:'Ajouter au suivi', icon:'💸', bg:'var(--negative-soft)', action: () => { setTxEnv('plaisir'); setShowModal(true) } },
+                  { label:'Courses', sub:'Saisir un passage', icon:'🛒', bg:'var(--positive-soft)', action: () => router.push('/courses') },
+                  { label:'Prédictif', sub:'Planifier', icon:'📋', bg:'var(--accent-soft)', action: () => router.push('/planned') },
+                  { label:'Calendrier', sub:'Voir les échéances', icon:'📅', bg:'var(--surface-highlight-2)', action: () => router.push('/calendar') },
                 ].map(({ label, sub, icon, bg, action }) => (
-                  <button key={label} onClick={action} className="bg-white rounded-[16px] p-4 text-left active:scale-[0.97] transition-transform">
-                    <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg mb-2" style={{ background: bg }}>{icon}</div>
-                    <p className="text-[14px] font-medium text-[#1d1d1f]">{label}</p>
-                    <p className="text-[12px] text-[#86868b]">{sub}</p>
+                  <button key={label} onClick={action} className="bg-[var(--bg-surface)] rounded-[16px] p-4 text-left active:scale-[0.97] transition-transform">
+                    <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg mb-2" style={{ background: tileBg(bg) }}>{icon}</div>
+                    <p className="text-[14px] font-medium text-[var(--text-primary)]">{label}</p>
+                    <p className="text-[12px] text-[var(--text-secondary)]">{sub}</p>
                   </button>
                 ))}
               </div>
@@ -282,22 +282,22 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
           )}
 
           {/* Dernières transactions */}
-          <p className="text-[12px] font-semibold tracking-widest uppercase text-[#86868b] px-1 pt-1">Dernières dépenses</p>
-          <div className="bg-white rounded-[20px] overflow-hidden">
+          <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 pt-1">Dernières dépenses</p>
+          <div className="bg-[var(--bg-surface)] rounded-[20px] overflow-hidden">
             {transactions.length === 0 ? (
-              <div className="px-4 py-8 text-center text-[14px] text-[#86868b]">Aucune dépense ce mois-ci</div>
+              <div className="px-4 py-8 text-center text-[14px] text-[var(--text-secondary)]">Aucune dépense ce mois-ci</div>
             ) : transactions.slice(0, 6).map((tx: any, i: number) => {
               const catName = tx.categories?.name ?? 'Autre'
               const icon = tx.categories?.icon ?? CAT_ICONS[catName] ?? '📦'
               const bg = CAT_COLORS[catName] ?? '#f5f5f7'
               return (
-                <div key={tx.id} className={`flex items-center px-4 py-3 gap-3 ${i < Math.min(transactions.length, 6) - 1 ? 'border-b border-[#f2f2f7]' : ''}`}>
-                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: bg }}>{icon}</div>
+                <div key={tx.id} className={`flex items-center px-4 py-3 gap-3 ${i < Math.min(transactions.length, 6) - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}>
+                  <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-[17px] flex-shrink-0" style={{ background: tileBg(bg) }}>{icon}</div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-medium text-[#1d1d1f] truncate">{tx.label}</p>
-                    <p className="text-[12px] text-[#86868b]">{catName}</p>
+                    <p className="text-[15px] font-medium text-[var(--text-primary)] truncate">{tx.label}</p>
+                    <p className="text-[12px] text-[var(--text-secondary)]">{catName}</p>
                   </div>
-                  <p className="text-[15px] font-semibold text-[#ff3b30] flex-shrink-0">−{fmt(tx.amount)}</p>
+                  <p className="text-[15px] font-semibold text-negative flex-shrink-0">−{fmt(tx.amount)}</p>
                 </div>
               )
             })}
@@ -309,9 +309,9 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
       {/* FAB */}
       {isCurrentMonth && (
         <button onClick={() => { setTxEnv('plaisir'); setShowModal(true) }}
-          className="fixed right-4 w-14 h-14 bg-[#1d1d1f] rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
+          className="fixed right-4 w-14 h-14 bg-accent rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform z-40"
           style={{ bottom: 'calc(env(safe-area-inset-bottom) + 72px)' }}>
-          <Plus size={24} color="white" />
+          <Plus size={24} color="var(--accent-ink)" />
         </button>
       )}
 
@@ -319,33 +319,33 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
       {showModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-end justify-center"
           onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}>
-          <div className="bg-white rounded-t-[24px] w-full max-w-lg overflow-y-auto"
+          <div className="bg-[var(--bg-surface)] rounded-t-[24px] w-full max-w-lg overflow-y-auto"
             style={{ maxHeight: '85vh', paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}>
-            <div className="sticky top-0 bg-white pt-4 px-5 pb-2 z-10">
-              <div className="w-9 h-1 bg-[#d1d1d6] rounded-full mx-auto mb-4" />
+            <div className="sticky top-0 bg-[var(--bg-surface)] pt-4 px-5 pb-2 z-10">
+              <div className="w-9 h-1 bg-[var(--bg-surface-3)] rounded-full mx-auto mb-4" />
               <div className="flex items-center justify-between">
-                <h2 className="text-[18px] font-bold text-[#1d1d1f]">Nouvelle dépense</h2>
-                <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[#f2f2f7] flex items-center justify-center">
-                  <X size={14} color="#86868b" />
+                <h2 className="text-[18px] font-bold text-[var(--text-primary)]">Nouvelle dépense</h2>
+                <button onClick={() => setShowModal(false)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                  <X size={14} color="var(--text-secondary)" />
                 </button>
               </div>
             </div>
             <div className="px-5 pb-4 space-y-3">
               <div>
-                <label className="text-[13px] text-[#86868b] block mb-1.5">Libellé</label>
-                <input className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[16px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Libellé</label>
+                <input className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] outline-none focus:border-accent-text focus:bg-[var(--bg-surface)]"
                   placeholder="Ex : Netflix, restaurant…" value={txLabel} onChange={e => setTxLabel(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[13px] text-[#86868b] block mb-1.5">Montant (€)</label>
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Montant (€)</label>
                   <input type="number" step="0.01" min="0"
-                    className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[16px] bg-[#f9f9fa] outline-none focus:border-[#007aff] focus:bg-white"
+                    className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] outline-none focus:border-accent-text focus:bg-[var(--bg-surface)]"
                     placeholder="0.00" value={txAmount} onChange={e => setTxAmount(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-[13px] text-[#86868b] block mb-1.5">Enveloppe</label>
-                  <select className="w-full h-11 border border-[#d1d1d6] rounded-[12px] px-3.5 text-[16px] bg-[#f9f9fa] outline-none appearance-none"
+                  <label className="text-[13px] text-[var(--text-secondary)] block mb-1.5">Enveloppe</label>
+                  <select className="w-full h-11 border border-[var(--border-default)] rounded-[12px] px-3.5 text-[16px] bg-[var(--bg-surface-2)] outline-none appearance-none"
                     value={txEnv} onChange={e => setTxEnv(e.target.value)}>
                     <option value="plaisir">✨ Plaisir</option>
                     <option value="courses">🛒 Courses</option>
@@ -355,7 +355,7 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
                 </div>
               </div>
               <button onClick={addTransaction} disabled={saving}
-                className="w-full h-12 bg-[#1d1d1f] text-white rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all">
+                className="w-full h-12 bg-accent text-accent-ink rounded-[14px] font-semibold text-[15px] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all">
                 {saving && <Loader2 size={16} className="animate-spin" />}
                 Ajouter
               </button>
@@ -368,18 +368,18 @@ export default function DashboardClient({ workspaceId, userId, displayName }: Pr
 }
 
 const CAT_PALETTE: Record<string, string> = {
-  'Logement': '#ff9f0a',
-  'Énergie': '#ffcc02',
-  'Telecom': '#007aff',
-  'Abonnements': '#af52de',
-  'Transport': '#5856d6',
-  'Santé': '#34c759',
-  'Assurances': '#ff2d55',
-  'Banque': '#00c7be',
-  'Autre': '#aeaeb2',
-  'Plaisir': '#ff6b6b',
-  'Épargne': '#34c759',
-  'Courses': '#007aff',
+  'Logement': 'var(--cat-fixe)',
+  'Énergie': 'var(--cat-courses)',
+  'Telecom': 'var(--cat-revenus)',
+  'Abonnements': 'var(--cat-extra-4)',
+  'Transport': 'var(--cat-extra-2)',
+  'Santé': 'var(--cat-extra-3)',
+  'Assurances': 'var(--cat-extra-1)',
+  'Banque': 'var(--cat-epargne)',
+  'Autre': 'var(--text-tertiary)',
+  'Plaisir': 'var(--cat-variable)',
+  'Épargne': 'var(--cat-epargne)',
+  'Courses': 'var(--cat-courses)',
 }
 
 function DonutChart({ data, total }: { data: Record<string, number>; total: number }) {
@@ -401,16 +401,16 @@ function DonutChart({ data, total }: { data: Record<string, number>; total: numb
     <div className="flex items-center gap-4">
       <div className="flex-shrink-0">
         <svg width="140" height="140" viewBox="0 0 140 140">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f2f2f7" strokeWidth="16" />
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--bg-surface-2)" strokeWidth="16" />
           {slices.map(({ cat, dash, gap, offset }) => (
             <circle key={cat} cx={cx} cy={cy} r={r} fill="none"
-              stroke={CAT_PALETTE[cat] ?? '#aeaeb2'} strokeWidth="16"
+              stroke={CAT_PALETTE[cat] ?? 'var(--text-tertiary)'} strokeWidth="16"
               strokeDasharray={`${dash.toFixed(2)} ${gap.toFixed(2)}`}
               strokeDashoffset={offset.toFixed(2)}
               transform={`rotate(-90 ${cx} ${cy})`} />
           ))}
-          <text x={cx} y={cy - 6} textAnchor="middle" fontSize="11" fill="#86868b">Total</text>
-          <text x={cx} y={cy + 10} textAnchor="middle" fontSize="14" fontWeight="700" fill="#1d1d1f">
+          <text x={cx} y={cy - 6} textAnchor="middle" fontSize="11" fill="var(--text-secondary)">Total</text>
+          <text x={cx} y={cy + 10} textAnchor="middle" fontSize="14" fontWeight="700" fill="var(--text-primary)">
             {Math.round(total)}€
           </text>
         </svg>
@@ -418,13 +418,13 @@ function DonutChart({ data, total }: { data: Record<string, number>; total: numb
       <div className="flex-1 space-y-2">
         {slices.map(({ cat, amount, pct }) => (
           <div key={cat} className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: CAT_PALETTE[cat] ?? '#aeaeb2' }} />
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: CAT_PALETTE[cat] ?? 'var(--text-tertiary)' }} />
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline">
-                <p className="text-[12px] font-medium text-[#1d1d1f] truncate">{cat}</p>
-                <p className="text-[12px] text-[#86868b] ml-1 flex-shrink-0">{Math.round(pct * 100)}%</p>
+                <p className="text-[12px] font-medium text-[var(--text-primary)] truncate">{cat}</p>
+                <p className="text-[12px] text-[var(--text-secondary)] ml-1 flex-shrink-0">{Math.round(pct * 100)}%</p>
               </div>
-              <p className="text-[11px] text-[#86868b]">{Math.round(amount)}€</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">{Math.round(amount)}€</p>
             </div>
           </div>
         ))}

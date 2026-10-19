@@ -5,6 +5,21 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Couleur acceptée pour une tuile d'icône : hexadécimal (#rgb, #rrggbb) ou jeton CSS (var(--nom)).
+// Les couleurs viennent de la base (choisies par l'utilisateur) : on refuse tout le reste
+// plutôt que d'injecter une valeur arbitraire dans un style.
+const SAFE_COLOR = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|var\(--[a-z0-9-]+\))$/
+
+/**
+ * Fond d'une tuile d'icône à partir de sa couleur enregistrée (pastel).
+ * En thème sombre la couleur est fortement atténuée dans la surface (--tile-mix),
+ * en thème clair elle est affichée telle quelle. Les données en base ne changent pas.
+ */
+export function tileBg(color: string | null | undefined): string {
+  const c = color && SAFE_COLOR.test(color) ? color : 'var(--bg-surface-2)'
+  return `color-mix(in srgb, ${c} var(--tile-mix), var(--bg-surface-2))`
+}
+
 export function fmt(amount: number, currency = 'EUR'): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
@@ -63,15 +78,15 @@ export function isDateInMonth(date: string, monthKey: string): boolean {
 }
 
 export function barColor(pct: number): string {
-  if (pct < 70) return 'bg-green-500'
-  if (pct < 100) return 'bg-orange-400'
-  return 'bg-red-500'
+  if (pct < 70) return 'bg-positive'
+  if (pct < 100) return 'bg-warning'
+  return 'bg-negative'
 }
 
 export function barColorHex(pct: number): string {
-  if (pct < 70) return '#34c759'
-  if (pct < 100) return '#ff9f0a'
-  return '#ff3b30'
+  if (pct < 70) return 'var(--positive)'
+  if (pct < 100) return 'var(--warning)'
+  return 'var(--negative)'
 }
 
 export function clamp(value: number, min: number, max: number): number {
