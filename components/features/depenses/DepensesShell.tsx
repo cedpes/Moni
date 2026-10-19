@@ -10,7 +10,7 @@ import MonthLockBanner from '@/components/ui/MonthLockBanner'
 import { useMonthLock } from '@/lib/utils/monthLock'
 import EditTransactionSheet, { fmtDay } from '@/components/features/transactions/EditTransactionSheet'
 import { filterFixedItemsForMonth, saveFixedItemVersioned, removeFixedItemFromMonth, type VersionedFixedItem } from '@/lib/utils/fixedItemsVersioning'
-import { Plus, X, Loader2, Check, Pencil, CalendarDays, RotateCcw, Copy, Info, CalendarRange } from 'lucide-react'
+import { Plus, X, Loader2, Check, CalendarDays, RotateCcw, Copy, Info, CalendarRange } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Props { workspaceId: string; userId: string; categories: any[] }
@@ -417,24 +417,27 @@ function FixeTab({ workspaceId, monthKey, parentMonth, onLockChange }: { workspa
               const done = isDone(item.id)
               const cat = CATEGORIES.find(c => c.id === item.category)
               return (
-                <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center px-4 py-3.5 gap-3">
-                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>
-                    {item.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-semibold text-[var(--text-primary)]">{item.name}</p>
-                    <p className="text-[12px] text-[var(--text-secondary)]">{cat ? `${cat.icon} ${cat.id} · ` : ''}{fmt(item.amount)} · le {item.due_day}</p>
-                  </div>
+                <div key={item.id} className="bg-[var(--bg-surface)] rounded-[16px] flex items-center pr-4 gap-2">
+                  <button onClick={() => { if (!readOnly) openEdit(item) }} disabled={readOnly}
+                    aria-label={readOnly ? `${item.name}, ${fmt(item.amount)}` : `Modifier ${item.name}, ${fmt(item.amount)}`}
+                    className="flex-1 min-w-0 flex items-center gap-3 pl-4 py-3.5 text-left rounded-l-[16px] active:bg-[var(--surface-highlight)] transition-colors disabled:cursor-default">
+                    <span className="w-11 h-11 rounded-full flex items-center justify-center text-xl flex-shrink-0" style={{ background: tileBg(item.color ?? 'var(--bg-surface-2)') }}>
+                      {item.icon}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className="block text-[15px] font-semibold text-[var(--text-primary)] truncate">{item.name}</span>
+                      <span className="block text-[12px] text-[var(--text-secondary)]">{cat ? `${cat.icon} ${cat.id} · ` : ''}{fmt(item.amount)} · le {item.due_day}</span>
+                    </span>
+                  </button>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {!readOnly && (<>
-                    <button onClick={() => openEdit(item)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                      <Pencil size={11} color="var(--text-secondary)" />
-                    </button>
-                    <button onClick={() => deleteItem(item.id)} className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
-                      <X size={11} color="var(--text-secondary)" />
-                    </button>
-                    </>)}
-                    <button onClick={() => toggleDone(item)}
+                    {!readOnly && (
+                      <button onClick={() => deleteItem(item.id)} aria-label={`Supprimer ${item.name}`}
+                        className="w-7 h-7 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center">
+                        <X size={11} color="var(--text-secondary)" />
+                      </button>
+                    )}
+                    <button onClick={() => toggleDone(item)} aria-pressed={done}
+                      aria-label={done ? `${item.name} payé, annuler` : `Marquer ${item.name} comme payé`}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${done ? 'bg-positive' : 'bg-[var(--bg-surface-2)] border border-[var(--border-default)]'}`}>
                       <Check size={14} color={done ? 'var(--on-positive)' : 'var(--text-tertiary)'} strokeWidth={2.5} />
                     </button>
@@ -855,41 +858,39 @@ function PlannedRow({ item, isLast, deleting, validating, onDelete, onEdit, onVa
   const validated = item.is_validated
 
   return (
-    <div className={`flex items-center px-4 py-3.5 gap-3 ${!isLast ? 'border-b border-[var(--border-subtle)]' : ''} ${validated ? 'opacity-60' : ''}`}>
-      <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg flex-shrink-0" style={{ background: tileBg(bg) }}>
-        {validated ? '✓' : icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className={`text-[15px] font-medium truncate ${validated ? 'line-through text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{item.label}</p>
-        <p className="text-[12px] text-[var(--text-secondary)]">{catName}</p>
-      </div>
-      <div className="flex items-center gap-2 flex-shrink-0">
+    <div className={`flex items-center pr-4 gap-2 ${!isLast ? 'border-b border-[var(--border-subtle)]' : ''}`}>
+      <button onClick={onEdit} aria-label={`Modifier ${item.label}, ${fmt(item.amount)}${validated ? ', validé' : ''}`}
+        className={`flex-1 min-w-0 flex items-center gap-3 pl-4 py-3.5 text-left active:bg-[var(--surface-highlight)] transition-colors ${validated ? 'opacity-60' : ''}`}>
+        <span className="w-9 h-9 rounded-[10px] flex items-center justify-center text-lg flex-shrink-0" style={{ background: tileBg(bg) }}>
+          {validated ? '✓' : icon}
+        </span>
+        <span className="flex-1 min-w-0">
+          <span className={`block text-[15px] font-medium truncate ${validated ? 'line-through text-[var(--text-secondary)]' : 'text-[var(--text-primary)]'}`}>{item.label}</span>
+          <span className="block text-[12px] text-[var(--text-secondary)]">{catName}</span>
+        </span>
         {item.is_recurring && !validated && (
-          <span className="flex items-center gap-1 text-[11px] font-semibold bg-cat-revenus/15 text-cat-revenus px-2 py-0.5 rounded-full">
-            <RotateCcw size={10} />↺
+          <span className="flex items-center gap-1 text-[11px] font-semibold bg-cat-revenus/15 text-cat-revenus px-2 py-0.5 rounded-full flex-shrink-0" title="Récurrent">
+            <RotateCcw size={10} aria-hidden="true" /><span className="sr-only">Récurrent</span>
           </span>
         )}
-        <p className={`text-[15px] font-semibold ${validated ? 'text-[var(--text-secondary)]' : 'text-negative'}`}>−{fmt(item.amount)}</p>
+        <span className={`text-[15px] font-semibold flex-shrink-0 ${validated ? 'text-[var(--text-secondary)]' : 'text-negative'}`}>−{fmt(item.amount)}</span>
+      </button>
 
-        <button onClick={onEdit}
-          className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center active:scale-95">
-          <Pencil size={10} color="var(--text-secondary)" />
-        </button>
-
+      <div className="flex items-center gap-2 flex-shrink-0">
         {!validated ? (
-          <button onClick={onValidate} disabled={validating}
+          <button onClick={onValidate} disabled={validating} aria-label={`Valider ${item.label}`}
             className="w-7 h-7 rounded-full bg-positive/15 border border-positive flex items-center justify-center active:scale-95 transition-transform">
             {validating ? <Loader2 size={12} className="animate-spin text-positive" /> : <Check size={13} color="var(--positive)" strokeWidth={2.5} />}
           </button>
         ) : (
-          <button onClick={onUnvalidate} disabled={validating}
+          <button onClick={onUnvalidate} disabled={validating} aria-label={`Annuler la validation de ${item.label}`}
             className="w-7 h-7 rounded-full bg-positive flex items-center justify-center active:scale-95 transition-transform">
             {validating ? <Loader2 size={12} className="animate-spin text-[var(--text-primary)]" /> : <Check size={13} color="var(--on-positive)" strokeWidth={2.5} />}
           </button>
         )}
 
         {!validated && (
-          <button onClick={onDelete} disabled={deleting}
+          <button onClick={onDelete} disabled={deleting} aria-label={`Supprimer ${item.label}`}
             className="w-6 h-6 rounded-full bg-[var(--bg-surface-2)] flex items-center justify-center active:scale-95">
             {deleting ? <Loader2 size={11} className="animate-spin text-[var(--text-secondary)]" /> : <X size={11} color="var(--text-secondary)" />}
           </button>
