@@ -21,3 +21,11 @@ export function createClient() {
 
   return pb
 }
+
+// Déconnexion : vide la session PocketBase (le cookie `pb_auth` est expiré par onChange
+// ci-dessus) et oublie les données locales liées au compte. Le thème est conservé.
+export function logout() {
+  const client = createClient()
+  client.authStore.clear()
+  try { localStorage.removeItem('pocketbase_auth') } catch {}
+}

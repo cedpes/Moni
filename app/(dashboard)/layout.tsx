@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { MonthProvider } from '@/lib/context/MonthContext'
 import BottomSheet from '@/components/ui/BottomSheet'
 import QuickAddSheet from '@/components/features/quick-add/QuickAddSheet'
+import LogoutButton from '@/components/ui/LogoutButton'
 
 const mainTabs = [
   { href: '/budget',   label: 'Budget',   icon: PieChart },
@@ -97,6 +98,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )
             })}
           </ul>
+          <div className="border-t border-[var(--border-default)] pt-1 pb-2">
+            <LogoutButton onDone={closeMore} />
+          </div>
         </BottomSheet>
       </div>
     </MonthProvider>

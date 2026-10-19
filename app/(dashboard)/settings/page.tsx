@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useTheme } from '@/lib/context/ThemeContext'
 import { ChevronLeft, Sun, Moon } from 'lucide-react'
+import LogoutButton from '@/components/ui/LogoutButton'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -37,6 +38,11 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
+        </div>
+
+        <div>
+          <p className="text-[12px] font-semibold tracking-widest uppercase text-[var(--text-secondary)] px-1 mb-2">Compte</p>
+          <LogoutButton variant="block" />
         </div>
       </div>
     </div>

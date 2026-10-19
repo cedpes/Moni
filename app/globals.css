@@ -42,6 +42,7 @@
   --warning: #f5c451;         /* à venir, en attente */
   --on-positive: #0d0e11;     /* texte/icône posé sur --positive */
   --on-warning: #0d0e11;
+  --on-negative: #0d0e11;
 
   /* Catégories de données */
   --cat-revenus: #60a5fa;
@@ -110,6 +111,7 @@
   --warning: #b45309;
   --on-positive: #ffffff;
   --on-warning: #ffffff;
+  --on-negative: #ffffff;
 
   --cat-revenus: #2563eb;
   --cat-fixe: #4f5bd5;
@@ -146,6 +148,7 @@
   --color-warning: var(--warning);
   --color-on-positive: var(--on-positive);
   --color-on-warning: var(--on-warning);
+  --color-on-negative: var(--on-negative);
   --color-cat-revenus: var(--cat-revenus);
   --color-cat-fixe: var(--cat-fixe);
   --color-cat-variable: var(--cat-variable);
