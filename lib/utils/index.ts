@@ -199,6 +199,7 @@ export function fixedItemAmountForWeek(
  * ni exceptionnel) au plus gros montant. Renvoie la date et le nombre de jours
  * à couvrir à partir d'aujourd'hui inclus (au moins 1), ou null s'il n'y en a pas.
  * Un salaire versé aujourd'hui compte pour la prochaine échéance (le mois suivant).
+ * Jour négatif = fin du mois − X jours, comme dans le Calendrier (−2 → avant-dernier jour).
  */
 export function nextPayday(
   fixedItems: { type?: string; amount?: number; due_day?: number; is_exceptional?: boolean; annual_months?: string | null }[],
@@ -206,13 +207,16 @@ export function nextPayday(
 ): { date: Date; days: number } | null {
   const salary = fixedItems
     .filter(f => f.type === 'income' && !f.is_exceptional && !(f.annual_months ?? '').trim()
-      && typeof f.due_day === 'number' && f.due_day >= 1 && f.due_day <= 31)
+      && typeof f.due_day === 'number' && f.due_day !== 0 && f.due_day >= -31 && f.due_day <= 31)
     .sort((a, b) => (b.amount ?? 0) - (a.amount ?? 0))[0]
   if (!salary) return null
 
   const day = salary.due_day as number
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-  const at = (y: number, m: number) => new Date(y, m, Math.min(day, new Date(y, m + 1, 0).getDate()))
+  const at = (y: number, m: number) => {
+    const dim = new Date(y, m + 1, 0).getDate()
+    return new Date(y, m, day > 0 ? Math.min(day, dim) : Math.max(1, dim + day + 1))
+  }
   let date = at(start.getFullYear(), start.getMonth())
   if (date <= start) date = at(start.getFullYear(), start.getMonth() + 1)
   const days = Math.max(1, Math.round((date.getTime() - start.getTime()) / 86_400_000))
