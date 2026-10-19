@@ -38,7 +38,8 @@ async function onboard(email) {
   await pb.collection('planned_expenses').create({ month_id: month.id, label: 'Resto', amount: 30, category_id: cat.id })
   await pb.collection('savings_goals').create({ workspace_id: ws.id, name: 'Vacances', target_amount: 500 })
   const members = await pb.collection('workspace_members').getFullList({ filter: pb.filter('user_id = {:u}', { u: uid }) })
-  return { pb, uid, ws, cat, month, env, tx, fi, members }
+  const store = await pb.collection('stores').create({ workspace_id: ws.id, name: 'Intermarché', icon: '🛒', color: '#fff3cd', position: 0 })
+  return { pb, uid, ws, cat, month, env, tx, fi, members, store }
 }
 
 let A, B
@@ -50,11 +51,14 @@ await allowed('A lit ses transactions', () => A.pb.collection('transactions').ge
 expect('A ne voit que ses transactions', (await A.pb.collection('transactions').getFullList()).every(t => t.workspace_id === A.ws.id))
 await allowed('A modifie sa transaction', () => A.pb.collection('transactions').update(A.tx.id, { amount: 15 }))
 await allowed('A modifie son enveloppe', () => A.pb.collection('envelopes').update(A.env.id, { budget: 100 }))
+await allowed('A renomme son magasin', () => A.pb.collection('stores').update(A.store.id, { name: 'Intermarché Hyper' }))
+await denied('A crée un magasin en double', () => A.pb.collection('stores').create({ workspace_id: A.ws.id, name: 'intermarché hyper' }))
+await denied('A crée un magasin avec une couleur invalide', () => A.pb.collection('stores').create({ workspace_id: A.ws.id, name: 'X', color: 'red;}' }))
 await allowed('A modifie son profil', () => A.pb.collection('users').update(A.uid, { display_name: 'Alice' }))
 
 // Attaques de B contre A
 const b = B.pb
-for (const c of ['workspaces', 'months', 'categories', 'transactions', 'envelopes', 'planned_expenses', 'fixed_items', 'fixed_item_status', 'savings_goals']) {
+for (const c of ['workspaces', 'months', 'categories', 'transactions', 'envelopes', 'planned_expenses', 'fixed_items', 'fixed_item_status', 'savings_goals', 'stores']) {
   const rows = await b.collection(c).getFullList()
   const leak = rows.filter(r => [r.workspace_id, r.month_id, r.id].some(v => v === A.ws.id || v === A.month.id))
   expect(`B ne voit rien de A dans ${c}`, leak.length === 0)
@@ -76,16 +80,24 @@ await denied('B modifie l\'enveloppe de A', () => b.collection('envelopes').upda
 await denied('B déplace sa transaction vers le workspace de A', () => b.collection('transactions').update(B.tx.id, { workspace_id: A.ws.id }))
 await denied('B déplace son enveloppe vers le mois de A', () => b.collection('envelopes').update(B.env.id, { month_id: A.month.id }))
 await denied('B prend la propriété de son workspace pour A', () => b.collection('workspaces').update(B.ws.id, { owner_id: A.uid }))
+await denied('B lit le magasin de A par id', () => b.collection('stores').getOne(A.store.id))
+await denied('B crée un magasin dans le workspace de A', () => b.collection('stores').create({ workspace_id: A.ws.id, name: 'Pirate' }))
+await denied('B renomme le magasin de A', () => b.collection('stores').update(A.store.id, { name: 'x' }))
+await denied('B supprime le magasin de A', () => b.collection('stores').delete(A.store.id))
+await denied('B déplace son magasin vers le workspace de A', () => b.collection('stores').update(B.store.id, { workspace_id: A.ws.id }))
 await denied('B supprime l\'adhésion de A', () => b.collection('workspace_members').delete(A.members[0].id))
 
 // Anonyme
 const anon = new PocketBase(URL)
 await denied('Anonyme liste les transactions', () => anon.collection('transactions').getFullList())
+await denied('Anonyme liste les magasins', () => anon.collection('stores').getFullList())
 await denied('Inscription publique', () => anon.collection('users').create({ email: 'c@test.local', password: 'Passw0rd!123', passwordConfirm: 'Passw0rd!123' }))
 
 // Intégrité : la transaction de A n'a pas bougé
 const txA = await A.pb.collection('transactions').getOne(A.tx.id)
 expect('Transaction de A intacte', txA.amount === 15 && txA.workspace_id === A.ws.id)
+const storeA = await A.pb.collection('stores').getOne(A.store.id)
+expect('Magasin de A intact', storeA.name === 'Intermarché Hyper' && storeA.workspace_id === A.ws.id)
 
 console.log(`\n${ok} OK, ${ko} ÉCHEC`)
 process.exit(ko ? 1 : 0)

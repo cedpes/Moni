@@ -1,7 +1,7 @@
 # Test d'isolation des API Rules PocketBase
 
 Vérifie qu'un compte ne peut ni lire, ni créer, ni modifier, ni supprimer les données
-d'un autre compte (37 contrôles). À lancer sur un PocketBase **jetable**, jamais sur la prod.
+d'un autre compte (48 contrôles). À lancer sur un PocketBase **jetable**, jamais sur la prod.
 
 ```bash
 # 1. Base de test vide : fixture du schéma + migrations du dépôt
